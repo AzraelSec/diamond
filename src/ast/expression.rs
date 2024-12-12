@@ -16,6 +16,82 @@ pub enum Expression {
     FunctionCall(FunctionCall),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PrefixOperator {
+    Not,
+    Minus,
+}
+
+impl Display for PrefixOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PrefixOperator::Not => "!",
+                PrefixOperator::Minus => "-",
+            }
+        )
+    }
+}
+
+impl PrefixOperator {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "!" => Some(PrefixOperator::Not),
+            "-" => Some(PrefixOperator::Minus),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InfixOperator {
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+    Equal,
+    NotEqual,
+    LessThan,
+    GreaterThan,
+}
+
+impl Display for InfixOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                InfixOperator::Plus => "+",
+                InfixOperator::Minus => "-",
+                InfixOperator::Multiply => "*",
+                InfixOperator::Divide => "/",
+                InfixOperator::Equal => "==",
+                InfixOperator::NotEqual => "!=",
+                InfixOperator::LessThan => "<",
+                InfixOperator::GreaterThan => ">",
+            }
+        )
+    }
+}
+
+impl InfixOperator {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "+" => Some(InfixOperator::Plus),
+            "-" => Some(InfixOperator::Minus),
+            "*" => Some(InfixOperator::Multiply),
+            "/" => Some(InfixOperator::Divide),
+            "==" => Some(InfixOperator::Equal),
+            "!=" => Some(InfixOperator::NotEqual),
+            "<" => Some(InfixOperator::LessThan),
+            ">" => Some(InfixOperator::GreaterThan),
+            _ => None,
+        }
+    }
+}
+
 impl Expression {
     fn token_literal(&self) -> String {
         match self {
@@ -102,7 +178,7 @@ impl Display for IntegerLiteral {
 #[derive(Debug, Clone)]
 pub struct PrefixExpression {
     pub token: Rc<Token>,
-    pub operator: String,
+    pub operator: PrefixOperator,
     // note: this was needed to avoid infinite recursion between Expression and PrefixExpression
     // :'(
     pub right: Box<Expression>,
@@ -123,7 +199,7 @@ impl Display for PrefixExpression {
 #[derive(Debug, Clone)]
 pub struct InfixExpression {
     pub token: Rc<Token>,
-    pub operator: String,
+    pub operator: InfixOperator,
     pub left: Box<Expression>,
     pub right: Box<Expression>,
 }

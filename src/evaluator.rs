@@ -1,6 +1,8 @@
 use crate::{
     ast::{
-        expression::{Expression, InfixExpression, PrefixExpression},
+        expression::{
+            Expression, InfixExpression, InfixOperator, PrefixExpression, PrefixOperator,
+        },
         node::Node,
         statement::Statement,
     },
@@ -36,10 +38,9 @@ fn eval_expression(expression: Expression) -> Option<Object> {
 
 fn eval_prefix_expression(expression: PrefixExpression) -> Option<Object> {
     let right = eval(Node::Expression(*expression.right))?;
-    match expression.operator.as_str() {
-        "!" => eval_bang_operator_expression(right),
-        "-" => eval_minus_prefix_expression(right),
-        _ => None,
+    match expression.operator {
+        PrefixOperator::Not => eval_bang_operator_expression(right),
+        PrefixOperator::Minus => eval_minus_prefix_expression(right),
     }
 }
 
@@ -64,16 +65,15 @@ fn eval_infix_expression(expression: InfixExpression) -> Option<Object> {
         expression.operator,
         eval(Node::Expression(*expression.right))?,
     );
-    match operator.as_str() {
-        "+" => eval_plus_infix_expression(left, right),
-        "-" => eval_minus_infix_expression(left, right),
-        "*" => eval_multiply_infix_expression(left, right),
-        "/" => eval_divide_infix_expression(left, right),
-        "<" => eval_lt_infix_expression(left, right),
-        ">" => eval_gt_infix_expression(left, right),
-        "==" => eval_equal_infix_expression(left, right),
-        "!=" => eval_not_equal_infix_expression(left, right),
-        _ => None,
+    match operator {
+        InfixOperator::Plus => eval_plus_infix_expression(left, right),
+        InfixOperator::Minus => eval_minus_infix_expression(left, right),
+        InfixOperator::Multiply => eval_multiply_infix_expression(left, right),
+        InfixOperator::Divide => eval_divide_infix_expression(left, right),
+        InfixOperator::LessThan => eval_lt_infix_expression(left, right),
+        InfixOperator::GreaterThan => eval_gt_infix_expression(left, right),
+        InfixOperator::Equal => eval_equal_infix_expression(left, right),
+        InfixOperator::NotEqual => eval_not_equal_infix_expression(left, right),
     }
 }
 

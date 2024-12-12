@@ -4,7 +4,7 @@ use crate::{
     ast::{
         expression::{
             BooleanExpression, Expression, FunctionCall, FunctionLiteral, Identifier, IfExpression,
-            InfixExpression, IntegerLiteral, PrefixExpression,
+            InfixExpression, InfixOperator, IntegerLiteral, PrefixExpression, PrefixOperator,
         },
         program::Program,
         statement::{
@@ -210,7 +210,7 @@ impl Parser {
 
     fn parse_prefix_modifier_expression(&mut self) -> Option<Expression> {
         let token = self.curr_token.clone();
-        let operator = self.curr_token.to_string();
+        let operator = PrefixOperator::from_str(&self.curr_token.to_string())?;
 
         self.next_token();
 
@@ -318,7 +318,7 @@ impl Parser {
 
     fn parse_infix_modifier_expression(&mut self, left: Expression) -> Option<Expression> {
         let token = self.curr_token.clone();
-        let operator = self.curr_token.to_string();
+        let operator = InfixOperator::from_str(&self.curr_token.to_string())?;
         let precedence = self.curr_precedence();
 
         self.next_token();
@@ -589,10 +589,10 @@ mod tests {
     #[test]
     fn test_prefix_expression() {
         let tests = [
-            ("!5;", "!", Literal::Int(5)),
-            ("-15;", "-", Literal::Int(15)),
-            ("!true;", "!", Literal::Bool(true)),
-            ("!false;", "!", Literal::Bool(false)),
+            ("!5;", PrefixOperator::Not, Literal::Int(5)),
+            ("-15;", PrefixOperator::Minus, Literal::Int(15)),
+            ("!true;", PrefixOperator::Not, Literal::Bool(true)),
+            ("!false;", PrefixOperator::Not, Literal::Bool(false)),
         ];
 
         for (input, operator, expected) in tests {
@@ -631,30 +631,70 @@ mod tests {
     #[test]
     fn test_infix_expression() {
         let tests = [
-            ("5 + 5;", Literal::Int(5), "+", Literal::Int(5)),
-            ("5 - 5;", Literal::Int(5), "-", Literal::Int(5)),
-            ("5 * 5;", Literal::Int(5), "*", Literal::Int(5)),
-            ("5 / 5;", Literal::Int(5), "/", Literal::Int(5)),
-            ("5 > 5;", Literal::Int(5), ">", Literal::Int(5)),
-            ("5 < 5;", Literal::Int(5), "<", Literal::Int(5)),
-            ("5 == 5;", Literal::Int(5), "==", Literal::Int(5)),
-            ("5 != 5;", Literal::Int(5), "!=", Literal::Int(5)),
+            (
+                "5 + 5;",
+                Literal::Int(5),
+                InfixOperator::Plus,
+                Literal::Int(5),
+            ),
+            (
+                "5 - 5;",
+                Literal::Int(5),
+                InfixOperator::Minus,
+                Literal::Int(5),
+            ),
+            (
+                "5 * 5;",
+                Literal::Int(5),
+                InfixOperator::Multiply,
+                Literal::Int(5),
+            ),
+            (
+                "5 / 5;",
+                Literal::Int(5),
+                InfixOperator::Divide,
+                Literal::Int(5),
+            ),
+            (
+                "5 > 5;",
+                Literal::Int(5),
+                InfixOperator::GreaterThan,
+                Literal::Int(5),
+            ),
+            (
+                "5 < 5;",
+                Literal::Int(5),
+                InfixOperator::LessThan,
+                Literal::Int(5),
+            ),
+            (
+                "5 == 5;",
+                Literal::Int(5),
+                InfixOperator::Equal,
+                Literal::Int(5),
+            ),
+            (
+                "5 != 5;",
+                Literal::Int(5),
+                InfixOperator::NotEqual,
+                Literal::Int(5),
+            ),
             (
                 "true == true",
                 Literal::Bool(true),
-                "==",
+                InfixOperator::Equal,
                 Literal::Bool(true),
             ),
             (
                 "true != false",
                 Literal::Bool(true),
-                "!=",
+                InfixOperator::NotEqual,
                 Literal::Bool(false),
             ),
             (
                 "false == false",
                 Literal::Bool(false),
-                "==",
+                InfixOperator::Equal,
                 Literal::Bool(false),
             ),
         ];
@@ -794,7 +834,7 @@ mod tests {
         check_infix_expression(
             &expression.condition,
             Literal::Ident("x"),
-            "<",
+            InfixOperator::LessThan,
             Literal::Ident("y"),
         );
 
@@ -842,7 +882,7 @@ mod tests {
         check_infix_expression(
             &if_expression.condition,
             Literal::Ident("x"),
-            "<",
+            InfixOperator::LessThan,
             Literal::Ident("y"),
         );
 
@@ -939,7 +979,7 @@ mod tests {
         check_infix_expression(
             &body_expression_statement.expression,
             Literal::Ident("x"),
-            "+",
+            InfixOperator::Plus,
             Literal::Ident("y"),
         );
     }
@@ -1039,13 +1079,13 @@ mod tests {
         check_infix_expression(
             &function_call_expression.args[1],
             Literal::Int(2),
-            "*",
+            InfixOperator::Multiply,
             Literal::Int(3),
         );
         check_infix_expression(
             &function_call_expression.args[2],
             Literal::Int(4),
-            "+",
+            InfixOperator::Plus,
             Literal::Int(5),
         );
     }
@@ -1056,7 +1096,12 @@ mod tests {
         Bool(bool),
     }
 
-    fn check_infix_expression(exp: &Expression, left: Literal, operator: &str, right: Literal) {
+    fn check_infix_expression(
+        exp: &Expression,
+        left: Literal,
+        operator: InfixOperator,
+        right: Literal,
+    ) {
         let infix_expression = match exp {
             Expression::Infix(infix) => infix,
             generic => panic!(
@@ -1067,7 +1112,7 @@ mod tests {
 
         check_literal_expression(&infix_expression.left, left);
         assert_eq!(
-            &infix_expression.operator, operator,
+            infix_expression.operator, operator,
             "wrong infix operator {}, want={}",
             &infix_expression.operator, operator
         );
