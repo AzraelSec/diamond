@@ -8,14 +8,18 @@ use crate::{
     environment::Environment,
 };
 
+type BuiltInFun = fn(Vec<Object>) -> Object;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ObjectType {
     Null,
     Integer,
+    String,
     Boolean,
     Return,
     Error,
     Function,
+    BuiltIn,
 }
 
 impl Display for ObjectType {
@@ -23,9 +27,11 @@ impl Display for ObjectType {
         match self {
             ObjectType::Null => write!(f, "null"),
             ObjectType::Integer => write!(f, "integer"),
+            ObjectType::String => write!(f, "string"),
             ObjectType::Boolean => write!(f, "boolean"),
             ObjectType::Return => write!(f, "return"),
             ObjectType::Function => write!(f, "function"),
+            ObjectType::BuiltIn => write!(f, "built-in"),
             ObjectType::Error => write!(f, "error"),
         }
     }
@@ -35,9 +41,11 @@ impl Display for ObjectType {
 pub enum Object {
     Null,
     Integer(i64),
+    String(String),
     Boolean(bool),
     Return(Box<Object>),
     Function(FunctionObject),
+    BuiltIn(BuiltInFun),
     Error(ErrorObject),
 }
 
@@ -47,6 +55,7 @@ pub enum ErrorObject {
     DivisionByZero,
     // note: this could be an identifier (?)
     CallOnNonFunction(ObjectType),
+    WrongNumberOfParams(usize, usize),
     IdentifierNotFound(String),
     UnknownPrefixOperator(PrefixOperator, ObjectType),
     UnknownInfixOperator(ObjectType, InfixOperator, ObjectType),
@@ -64,6 +73,13 @@ impl Display for ErrorObject {
                     f,
                     "impossible to perform a function call on a non-function: {}",
                     obj
+                )
+            }
+            ErrorObject::WrongNumberOfParams(expected, got) => {
+                write!(
+                    f,
+                    "wrong number of params: expected={}, got={}",
+                    expected, got
                 )
             }
             ErrorObject::IdentifierNotFound(identifier) => {
@@ -106,9 +122,11 @@ impl Display for Object {
         match &self {
             Self::Null => write!(f, "null"),
             Self::Integer(obj) => write!(f, "{}", obj),
+            Self::String(obj) => write!(f, "{}", obj),
             Self::Boolean(obj) => write!(f, "{}", obj),
             Self::Return(obj) => write!(f, "{}", obj),
             Self::Function(obj) => write!(f, "{}", obj),
+            Self::BuiltIn(_) => write!(f, "<runtime function>"),
             Self::Error(msg) => write!(f, "{}", msg),
         }
     }
@@ -119,9 +137,11 @@ impl Object {
         match self {
             Object::Null => ObjectType::Null,
             Object::Integer(_) => ObjectType::Integer,
+            Object::String(_) => ObjectType::String,
             Object::Boolean(_) => ObjectType::Boolean,
             Object::Return(_) => ObjectType::Return,
             Object::Function(_) => ObjectType::Function,
+            Object::BuiltIn(_) => ObjectType::BuiltIn,
             Object::Error(_) => ObjectType::Error,
         }
     }
@@ -138,6 +158,10 @@ mod tests {
             (
                 Object::Error(ErrorObject::Generic("something went wrong".to_string())),
                 "something went wrong",
+            ),
+            (
+                Object::Error(ErrorObject::WrongNumberOfParams(1, 2)),
+                "wrong number of params: expected=1, got=2",
             ),
             (
                 Object::Error(ErrorObject::UnknownPrefixOperator(

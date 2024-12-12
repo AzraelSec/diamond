@@ -50,7 +50,9 @@ impl Lexer {
                 tok
             }
             (None, _) => {
-                if Self::is_letter(self.ch) {
+                if let Some('"') = self.ch {
+                    self.read_string()
+                } else if Self::is_letter(self.ch) {
                     return self.read_identifier();
                 } else if Self::is_digit(self.ch) {
                     return self.read_integer();
@@ -94,6 +96,18 @@ impl Lexer {
             self.read_char();
         }
         Token::Int(self.input[pos..self.position].to_string())
+    }
+
+    fn read_string(&mut self) -> Token {
+        let start_pos = self.position + 1;
+        self.read_char();
+
+        // note: this is not perfect, but it's good enough for now
+        while self.ch.is_some() && self.ch != Some('"') {
+            self.read_char();
+        }
+
+        Token::String(self.input[start_pos..self.position].to_string())
     }
 
     fn is_letter(ch: Option<char>) -> bool {
@@ -146,7 +160,8 @@ mod tests {
 
     #[test]
     fn test_lexer() {
-        let input = r#"let five = 555;
+        let input = r#"
+        let five = 555;
         let ten = 10;
 
         let add = fn(x, y) {
@@ -168,6 +183,9 @@ mod tests {
         10 == 10;
 
         10 != 9;
+
+        "foobar";
+        "foo bar";
         "#;
 
         let tests = vec![
@@ -252,6 +270,10 @@ mod tests {
             Token::Int("9".to_string()),
             Token::Semicolon,
             //
+            Token::String("foobar".to_string()),
+            Token::Semicolon,
+            Token::String("foo bar".to_string()),
+            Token::Semicolon,
             Token::Eof,
         ];
 

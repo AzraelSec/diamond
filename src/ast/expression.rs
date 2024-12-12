@@ -8,6 +8,7 @@ use super::{node::NodeTrait, statement::BlockStatement};
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
+    StringLiteral(String),
     Prefix(PrefixExpression),
     Infix(InfixExpression),
     Boolean(BooleanExpression),
@@ -97,6 +98,7 @@ impl Expression {
         match self {
             Expression::Identifier(x) => x.token_literal(),
             Expression::IntegerLiteral(x) => x.token_literal(),
+            Expression::StringLiteral(x) => x.to_string(),
             Expression::Prefix(x) => x.token_literal(),
             Expression::Infix(x) => x.token_literal(),
             Expression::Boolean(x) => x.token_literal(),
@@ -110,6 +112,7 @@ impl Expression {
         match self {
             Expression::Identifier(_) => "Expression::Identifier",
             Expression::IntegerLiteral(_) => "Expression::IntegerLiteral",
+            Expression::StringLiteral(_) => "Expression:StringLiteral",
             Expression::Prefix(_) => "Expression::Prefix",
             Expression::Infix(_) => "Expression::Infix",
             Expression::Boolean(_) => "Expression::Boolean",
@@ -128,6 +131,7 @@ impl Display for Expression {
             match self {
                 Expression::Identifier(x) => x.to_string(),
                 Expression::IntegerLiteral(x) => x.to_string(),
+                Expression::StringLiteral(x) => x.to_string(),
                 Expression::Prefix(x) => x.to_string(),
                 Expression::Infix(x) => x.to_string(),
                 Expression::Boolean(x) => x.to_string(),

@@ -204,6 +204,7 @@ impl Parser {
             Token::Lparen => self.parse_grouped_expression(),
             Token::If => self.parse_if_expression(),
             Token::Function => self.parse_function_literal(),
+            Token::String(_) => self.parse_string_literal_expression(),
             _ => None,
         }
     }
@@ -221,6 +222,10 @@ impl Parser {
                 right: Box::new(v),
             }))
         })
+    }
+
+    fn parse_string_literal_expression(&mut self) -> Option<Expression> {
+        Some(Expression::StringLiteral(self.curr_token.to_string()))
     }
 
     fn parse_identifier_expression(&mut self) -> Option<Expression> {
@@ -564,6 +569,7 @@ mod tests {
             ("5;", Literal::Int(5)),
             ("true;", Literal::Bool(true)),
             ("false;", Literal::Bool(false)),
+            ("\"hello world\"", Literal::String("hello world")),
         ];
 
         for (input, expected) in tests {
@@ -1094,6 +1100,7 @@ mod tests {
         Ident(&'a str),
         Int(i64),
         Bool(bool),
+        String(&'a str),
     }
 
     fn check_infix_expression(
@@ -1124,6 +1131,7 @@ mod tests {
             Literal::Ident(expected) => check_ident_literal(exp, expected),
             Literal::Int(expected) => check_integer_literal(exp, expected),
             Literal::Bool(expected) => check_boolean_literal(exp, expected),
+            Literal::String(expected) => check_string_literal(exp, expected),
         }
     }
 
@@ -1164,6 +1172,19 @@ mod tests {
             "unexpected integer literal token {}, expected: {}",
             integer_literal.token_literal(),
             expected.to_string()
+        );
+    }
+
+    fn check_string_literal(string_literal: &Expression, expected: &str) {
+        let string_literal = match string_literal {
+            Expression::StringLiteral(string_literal) => string_literal,
+            generic => panic!("expected string literal, found: {}", generic.type_string()),
+        };
+
+        assert_eq!(
+            string_literal, expected,
+            "unexpected string literal {}, expected: {}",
+            string_literal, expected
         );
     }
 

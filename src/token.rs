@@ -7,6 +7,7 @@ pub enum Token {
     //
     Ident(String),
     Int(String),
+    String(String),
     //
     Assign,
     Plus,
@@ -45,6 +46,7 @@ impl Display for Token {
             Token::Eof => write!(f, "EOF"),
             Token::Ident(s) => write!(f, "{}", s.to_string()),
             Token::Int(n) => write!(f, "{}", n.to_string()),
+            Token::String(s) => write!(f, "{}", s.to_string()),
             Token::Assign => write!(f, "="),
             Token::Plus => write!(f, "+"),
             Token::Minus => write!(f, "-"),

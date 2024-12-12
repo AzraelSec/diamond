@@ -11,7 +11,8 @@ use crate::{
         statement::{BlockStatement, LetStatement, ReturnStatement, Statement},
     },
     environment::Environment,
-    object::{ErrorObject, FunctionObject, Object},
+    object::builtins::get_builtin,
+    object::object::{ErrorObject, FunctionObject, Object},
 };
 
 pub fn eval(node: Node, env: &mut Environment) -> Object {
@@ -48,6 +49,7 @@ fn eval_expression(expression: Expression, env: &mut Environment) -> Object {
     match expression {
         Expression::IntegerLiteral(integer_literal) => Object::Integer(integer_literal.value),
         Expression::Boolean(boolean) => Object::Boolean(boolean.value),
+        Expression::StringLiteral(string_literal) => Object::String(string_literal),
         Expression::Prefix(prefix) => eval_prefix_expression(prefix, env),
         Expression::Infix(infix) => eval_infix_expression(infix, env),
         Expression::If(conditional) => eval_conditional_expression(conditional, env),
@@ -70,11 +72,13 @@ fn eval_expressions(expressions: Vec<Expression>, env: &mut Environment) -> Vec<
 }
 
 fn eval_identifier_expression(identifier: Identifier, env: &mut Environment) -> Object {
-    let val = env.get(&identifier.value);
-    match val {
-        Some(val) => val.clone(),
-        None => Object::Error(ErrorObject::IdentifierNotFound(identifier.value)),
+    if let Some(val) = env.get(&identifier.value) {
+        return val.clone();
     }
+    if let Some(fun) = get_builtin(&identifier.value) {
+        return fun;
+    }
+    Object::Error(ErrorObject::IdentifierNotFound(identifier.value))
 }
 
 fn eval_prefix_expression(expression: PrefixExpression, env: &mut Environment) -> Object {
@@ -139,6 +143,9 @@ fn eval_infix_expression(expression: InfixExpression, env: &mut Environment) -> 
 fn eval_plus_infix_expression(left: Object, right: Object) -> Object {
     match (left, right) {
         (Object::Integer(left), Object::Integer(right)) => Object::Integer(left + right),
+        (Object::String(left), Object::String(right)) => {
+            Object::String(format!("{}{}", left, right))
+        }
         (left, right) => Object::Error(ErrorObject::UnknownInfixOperator(
             left.get_type(),
             InfixOperator::Plus,
@@ -277,14 +284,16 @@ fn eval_function_call(function_call: FunctionCall, env: &mut Environment) -> Obj
             &mut extended_env,
         );
 
-        if let Object::Return(return_object) = evaluated {
+        return if let Object::Return(return_object) = evaluated {
             *return_object
         } else {
             evaluated
-        }
-    } else {
-        Object::Error(ErrorObject::CallOnNonFunction(function.get_type()))
+        };
     }
+    if let Object::BuiltIn(builtin_function) = function {
+        return builtin_function(params);
+    }
+    Object::Error(ErrorObject::CallOnNonFunction(function.get_type()))
 }
 
 fn extend_function_env(function: FunctionObject, args: Vec<Object>) -> Environment {
@@ -338,7 +347,7 @@ mod tests {
 
     use crate::{
         lexer::Lexer,
-        object::{ErrorObject, Object, ObjectType},
+        object::object::{ErrorObject, Object, ObjectType},
         parser::Parser,
     };
 
@@ -375,6 +384,11 @@ mod tests {
         for (input, expected) in tests {
             check_integer_object(check_eval(input), expected);
         }
+    }
+
+    #[test]
+    fn test_eval_string_literal() {
+        check_string_object(check_eval("\"Hello world!\""), "Hello world!");
     }
 
     #[test]
@@ -627,6 +641,57 @@ mod tests {
         check_integer_object(check_eval(input), 4);
     }
 
+    #[test]
+    fn test_string_concatenation() {
+        let input = "\"Hello\" + \" \" + \"world!\"";
+        check_string_object(check_eval(input), "Hello world!");
+    }
+
+    #[test]
+    fn test_builtin_function() {
+        let tests = [
+            ("len(\"\")", Object::Integer(0)),
+            ("len(\"four\")", Object::Integer(4)),
+            (
+                "len(1)",
+                Object::Error(ErrorObject::Generic(
+                    "len builtin does not support type integer".to_string(),
+                )),
+            ),
+            (
+                "len(\"one\", \"tw\")",
+                Object::Error(ErrorObject::Generic(
+                    "wrong number of params: expected=1, got=2".to_string(),
+                )),
+            ),
+        ];
+
+        for (input, result) in tests {
+            let obj = check_eval(input);
+            match result {
+                Object::Integer(result) => check_integer_object(obj, result),
+                Object::Error(error) => {
+                    let obj = match obj {
+                        Object::Error(obj) => obj,
+                        _ => panic!(
+                            "unexpected object type {}, want={}",
+                            obj.get_type(),
+                            ObjectType::Error
+                        ),
+                    };
+                    assert_eq!(
+                        obj.to_string(),
+                        error.to_string(),
+                        "error message mismatch. want={}, got={}",
+                        error.to_string(),
+                        obj.to_string()
+                    );
+                }
+                _ => unreachable!("not tested cases"),
+            }
+        }
+    }
+
     fn check_eval(input: &str) -> Object {
         let lexer = Lexer::new(input.to_string());
         let mut parser = Parser::new(lexer);
@@ -648,6 +713,15 @@ mod tests {
             Object::Boolean(obj) => obj,
             Object::Error(error) => panic!("expected BooleanObject, got error: {}", error),
             _ => panic!("expected BooleanObject, got: {}", obj.get_type()),
+        };
+        assert_eq!(obj, expected, "expected={}, got={}", expected, obj);
+    }
+
+    fn check_string_object(obj: Object, expected: &str) {
+        let obj = match obj {
+            Object::String(obj) => obj,
+            Object::Error(error) => panic!("expected StringObject, got error: {}", error),
+            _ => panic!("expected StringObject, got: {}", obj.get_type()),
         };
         assert_eq!(obj, expected, "expected={}, got={}", expected, obj);
     }
