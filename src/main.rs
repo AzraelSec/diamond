@@ -31,9 +31,6 @@ fn main() {
         }
 
         let evaluated = eval(Node::Program(program));
-        match evaluated {
-            Some(obj) => println!("{}", obj),
-            None => println!("impossible to evaluate your input"),
-        }
+        println!("{}", evaluated)
     }
 }
