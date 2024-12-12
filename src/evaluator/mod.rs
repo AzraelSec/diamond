@@ -15,7 +15,7 @@ use crate::parser::{
     },
     node::Node,
     program::Program,
-    statement::{BlockStatement, LetStatement, ReturnStatement, Statement},
+    statement::{BlockStatement, LetStatement, ReturnStatement, Statement, WhileStatement},
 };
 
 pub fn eval(node: Node, env: &MutEnvironmentRef) -> Object {
@@ -34,6 +34,35 @@ fn eval_statement(statement: Statement, env: &MutEnvironmentRef) -> Object {
         Statement::Let(statement) => eval_let_statement(statement, env),
         Statement::Block(block) => eval_block_statement(block, env),
         Statement::Return(return_statement) => eval_return_statement(return_statement, env),
+        Statement::While(while_statement) => eval_while_statement(while_statement, env),
+    }
+}
+
+fn eval_while_statement(statement: WhileStatement, env: &MutEnvironmentRef) -> Object {
+    let mut iteration: usize = 0;
+
+    loop {
+        if iteration >= 1000 {
+            return Object::Error(ErrorObject::NumberOfInterationsExceeded);
+        }
+
+        let guard_val = eval(Node::Expression(statement.guard.clone()), env);
+        if matches!(guard_val, Object::Error(_)) {
+            return guard_val;
+        }
+
+        if let Object::Boolean(false) | Object::Integer(0) = guard_val {
+            return Object::Null;
+        }
+
+        iteration += 1;
+        let body_obj = eval(
+            Node::Statement(Statement::Block(statement.body.clone())),
+            env,
+        );
+        if let Object::Return(_) | Object::Error(_) = body_obj {
+            return body_obj;
+        }
     }
 }
 
@@ -978,11 +1007,60 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_while_statement() {
+        let input = "
+            let x = 0;
+            while (x < 5) {
+                let x = x + 1;
+            }
+        ";
+
+        let env = &mut Environment::new();
+        let obj = check_eval_with_env(input, env);
+
+        assert_eq!(obj, Object::Null, "while returned a value, got: {}", obj);
+
+        let x_val = match env.borrow().get("x") {
+            Some(obj) => obj.clone(),
+            None => panic!("x not found in environment"),
+        };
+
+        check_integer_object(x_val, 5);
+    }
+
+    #[test]
+    fn test_while_statement_with_return() {
+        let input = "
+            let x = 0;
+            while (true) {
+                let x = x + 1;
+                if (x == 5) {
+                    return 100;
+                }
+            }
+        ";
+
+        let env = &mut Environment::new();
+        let obj = check_eval_with_env(input, env);
+
+        let return_val = match obj {
+            Object::Integer(_) => obj,
+            generic => panic!("expected integer object, got: {}", generic.get_type()),
+        };
+
+        check_integer_object(return_val, 100);
+    }
+
     fn check_eval(input: &str) -> Object {
+        check_eval_with_env(input, &mut Environment::new())
+    }
+
+    fn check_eval_with_env(input: &str, env: &mut MutEnvironmentRef) -> Object {
         let lexer = Lexer::new(input.to_string());
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
-        eval(Node::Program(program), &mut Environment::new())
+        eval(Node::Program(program), env)
     }
 
     fn check_integer_object(obj: Object, expected: i64) {

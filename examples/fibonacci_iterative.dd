@@ -1,0 +1,19 @@
+let fib = fn(n) {
+  let a = 0;
+  let b = 1;
+  let i = 0;
+
+  while (true) {
+    if (i >= n) {
+      return a;
+    }
+
+    let tmp = a;
+    let a = b;
+    let b = tmp + b;
+    let i = i + 1;
+  }
+}
+
+say("fib(10) = " + fib(10));
+say("did it work?: " + (fib(10) == 55));

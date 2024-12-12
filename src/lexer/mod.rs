@@ -198,6 +198,10 @@ mod tests {
 
         1 <= 2;
         2 >= 1;
+
+        while (5 < 10) {
+            x + 1;
+        }
         "#;
 
         let tests = vec![
@@ -308,6 +312,19 @@ mod tests {
             Token::GTET,
             Token::Int("1".to_string()),
             Token::Semicolon,
+            //
+            Token::While,
+            Token::Lparen,
+            Token::Int("5".to_string()),
+            Token::LT,
+            Token::Int("10".to_string()),
+            Token::Rparen,
+            Token::Lbrace,
+            Token::Ident("x".to_string()),
+            Token::Plus,
+            Token::Int("1".to_string()),
+            Token::Semicolon,
+            Token::Rbrace,
             Token::Eof,
         ];
 

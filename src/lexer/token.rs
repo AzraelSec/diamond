@@ -42,6 +42,7 @@ pub enum Token {
     If,
     Else,
     Return,
+    While,
 }
 
 impl Display for Token {
@@ -80,6 +81,7 @@ impl Display for Token {
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
             Token::Return => write!(f, "return"),
+            Token::While => write!(f, "while"),
         }
     }
 }
@@ -135,6 +137,7 @@ impl Token {
             "if" => Some(Token::If),
             "else" => Some(Token::Else),
             "return" => Some(Token::Return),
+            "while" => Some(Token::While),
             _ => None,
         }
     }

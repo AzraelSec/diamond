@@ -87,6 +87,7 @@ impl Parser {
         match *self.curr_token {
             Token::Let => self.parse_let_statement(),
             Token::Return => self.parse_return_statement(),
+            Token::While => self.parse_while_statement(),
             _ => self.parse_expression_statement(),
         }
     }
@@ -477,6 +478,32 @@ impl Parser {
         Some(Expression::HashLiteral(HashLiteral {
             token: curr_token,
             pairs,
+        }))
+    }
+
+    fn parse_while_statement(&mut self) -> Option<Statement> {
+        let curr_token = self.curr_token.clone();
+        if !self.expect_peek(Token::Lparen) {
+            return None;
+        }
+
+        self.next_token();
+        let condition = self.parse_expression(Precedence::LOWEST)?;
+
+        if !self.expect_peek(Token::Rparen) {
+            return None;
+        }
+
+        if !self.expect_peek(Token::Lbrace) {
+            return None;
+        }
+
+        let body = self.parse_block_statement();
+
+        Some(Statement::While(statement::WhileStatement {
+            token: curr_token,
+            guard: condition,
+            body,
         }))
     }
 
@@ -1382,6 +1409,53 @@ mod tests {
             check_string_literal(exp_key, key);
             value_checker(exp_value);
         }
+    }
+
+    #[test]
+    fn test_while_statement() {
+        let input = "while (x < 5) { x + 1; }";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+        check_statements_len(&program, 1);
+
+        let statement = match &program.statements[0] {
+            Statement::While(statement) => statement,
+            generic => panic!("expected while statement, found {}", generic.type_string()),
+        };
+
+        check_infix_expression(
+            &statement.guard,
+            Literal::Ident("x"),
+            InfixOperator::LessThan,
+            Literal::Int(5),
+        );
+
+        assert_eq!(
+            statement.body.statements.len(),
+            1,
+            "wrong number of body statements {}, want={}",
+            statement.body.statements.len(),
+            1
+        );
+
+        let body_expression_statement = match &statement.body.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
+
+        check_infix_expression(
+            &body_expression_statement.expression,
+            Literal::Ident("x"),
+            InfixOperator::Plus,
+            Literal::Int(1),
+        );
     }
 
     enum Literal<'a> {

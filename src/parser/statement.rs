@@ -13,6 +13,7 @@ pub enum Statement {
     Return(ReturnStatement),
     Expression(ExpressionStatement),
     Block(BlockStatement),
+    While(WhileStatement),
 }
 
 impl Statement {
@@ -22,6 +23,7 @@ impl Statement {
             Statement::Return(s) => s.token_literal(),
             Statement::Expression(s) => s.token_literal(),
             Statement::Block(s) => s.token_literal(),
+            Statement::While(s) => s.token_literal(),
         }
     }
 
@@ -31,6 +33,7 @@ impl Statement {
             Statement::Return(_) => "Statement::Return",
             Statement::Expression(_) => "Statement::Expression",
             Statement::Block(_) => "Statement::Block",
+            Statement::While(_) => "Statement::While",
         }
     }
 }
@@ -45,6 +48,7 @@ impl Display for Statement {
                 Statement::Return(s) => s.to_string(),
                 Statement::Expression(s) => s.to_string(),
                 Statement::Block(s) => s.to_string(),
+                Statement::While(s) => s.to_string(),
             }
         )
     }
@@ -132,6 +136,30 @@ impl Display for BlockStatement {
                 .iter()
                 .map(|stmt| stmt.to_string())
                 .collect::<String>()
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WhileStatement {
+    pub token: Rc<Token>,
+    pub guard: Expression,
+    pub body: BlockStatement,
+}
+
+impl NodeTrait for WhileStatement {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for WhileStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "while ({}) {{{}}}",
+            self.guard.to_string(),
+            self.body.to_string()
         )
     }
 }

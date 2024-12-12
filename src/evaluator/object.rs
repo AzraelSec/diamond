@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use std::{collections::HashMap, fmt::Display};
 
-use crate::parser::expression::{Identifier, InfixOperator, PrefixOperator};
+use crate::parser::expression::{BooleanExpression, Identifier, InfixOperator, PrefixOperator};
 use crate::parser::statement::BlockStatement;
 
 use super::environment::MutEnvironmentRef;
@@ -15,6 +15,7 @@ pub enum ObjectType {
     String,
     Boolean,
     Return,
+    While,
     Error,
     Function,
     BuiltIn,
@@ -30,6 +31,7 @@ impl Display for ObjectType {
             ObjectType::String => write!(f, "string"),
             ObjectType::Boolean => write!(f, "boolean"),
             ObjectType::Return => write!(f, "return"),
+            ObjectType::While => write!(f, "while"),
             ObjectType::Function => write!(f, "function"),
             ObjectType::BuiltIn => write!(f, "built-in"),
             ObjectType::Error => write!(f, "error"),
@@ -46,6 +48,7 @@ pub enum Object {
     String(String),
     Boolean(bool),
     Return(Box<Object>),
+    While(WhileObject),
     Function(FunctionObject),
     BuiltIn(BuiltInFun),
     Error(ErrorObject),
@@ -76,6 +79,7 @@ pub enum ErrorObject {
     CallOnNonFunction(ObjectType),
     WrongNumberOfParams(usize, usize),
     InvalidHashKey(ObjectType),
+    NumberOfInterationsExceeded,
     IdentifierNotFound(String),
     UnknownPrefixOperator(PrefixOperator, ObjectType),
     UnknownInfixOperator(ObjectType, InfixOperator, ObjectType),
@@ -107,6 +111,7 @@ impl Display for ErrorObject {
                 "hash key must be a string, integer or boolean, found {}",
                 tpe
             ),
+            ErrorObject::NumberOfInterationsExceeded => write!(f, "number of iterations exceeded"),
             ErrorObject::IdentifierNotFound(identifier) => {
                 write!(f, "identifier not found: {}", identifier)
             }
@@ -142,6 +147,19 @@ impl Display for FunctionObject {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct WhileObject {
+    pub guard: BooleanExpression,
+    pub body: BlockStatement,
+    pub env: MutEnvironmentRef,
+}
+
+impl Display for WhileObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "while ({}) {{\n{}\n}}", self.guard, self.body)
+    }
+}
+
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
@@ -150,6 +168,7 @@ impl Display for Object {
             Self::String(obj) => write!(f, "{}", obj),
             Self::Boolean(obj) => write!(f, "{}", obj),
             Self::Return(obj) => write!(f, "{}", obj),
+            Self::While(obj) => write!(f, "{}", obj),
             Self::Function(obj) => write!(f, "{}", obj),
             Self::BuiltIn(_) => write!(f, "<runtime function>"),
             Self::Error(msg) => write!(f, "{}", msg),
@@ -182,6 +201,7 @@ impl Object {
             Object::String(_) => ObjectType::String,
             Object::Boolean(_) => ObjectType::Boolean,
             Object::Return(_) => ObjectType::Return,
+            Object::While(_) => ObjectType::While,
             Object::Function(_) => ObjectType::Function,
             Object::BuiltIn(_) => ObjectType::BuiltIn,
             Object::Error(_) => ObjectType::Error,
