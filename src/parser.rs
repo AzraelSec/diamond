@@ -64,6 +64,10 @@ impl Parser {
         s
     }
 
+    pub fn errors(&self) -> &Vec<String> {
+        &self.errors
+    }
+
     pub fn parse_program(&mut self) -> Program {
         let mut statements = vec![];
 
@@ -104,7 +108,7 @@ impl Parser {
         self.next_token();
         let value = self.parse_expression(Precedence::LOWEST)?;
 
-        while !self.curr_token_is(Token::Semicolon) {
+        if self.peek_token_is(Token::Semicolon) {
             self.next_token();
         }
 
@@ -121,7 +125,7 @@ impl Parser {
 
         let value = self.parse_expression(Precedence::LOWEST)?;
 
-        while !self.curr_token_is(Token::Semicolon) {
+        if self.peek_token_is(Token::Semicolon) {
             self.next_token();
         }
 
@@ -481,8 +485,8 @@ mod tests {
     fn test_let_statement() {
         let input = r#"
             let x = 5;
-            let y = 10;
-            let foobar = 838383;"#;
+            let y = true;
+            let foobar = y;"#;
 
         let lexer = Lexer::new(input.to_string());
         let mut parser = Parser::new(lexer);
@@ -492,30 +496,20 @@ mod tests {
         check_parser_errors(&parser);
         check_statements_len(&program, 3);
 
-        let tests = vec![("x"), ("y"), ("foobar")];
-        for (i, expected_identifier) in tests.iter().enumerate() {
-            let statement = &program.statements[i];
-            assert!(
-                check_let_statement(statement, *expected_identifier),
-                "test_let_statement failed for expected_identifier={}",
-                expected_identifier
-            );
-        }
-    }
-
-    fn check_let_statement(statement: &Statement, expected_identifier: &str) -> bool {
-        if let Statement::Let(ls) = statement {
-            if ls.token.to_string() != "let" {
-                return false;
+        let tests = vec![
+            ("x", Literal::Int(5)),
+            ("y", Literal::Bool(true)),
+            ("foobar", Literal::Ident("y")),
+        ];
+        for (i, (identifier, value)) in tests.into_iter().enumerate() {
+            let let_statement = match &program.statements[i] {
+                Statement::Let(ls) => ls,
+                generic => panic!("expected let statement, found {}", generic.type_string()),
             };
 
-            if ls.name.token.to_string() != expected_identifier {
-                return false;
-            };
-
-            true
-        } else {
-            false
+            assert_eq!(let_statement.token.to_string(), Token::Let.to_string());
+            assert_eq!(let_statement.name.token.to_string(), identifier);
+            check_literal_expression(&let_statement.value, value);
         }
     }
 
@@ -523,9 +517,15 @@ mod tests {
     fn test_return_statement() {
         let input = "
             return 5;
-            return 10;
-            return 1337;
+            return true;
+            return y;
         ";
+
+        let tests = vec![
+            (Literal::Int(5)),
+            (Literal::Bool(true)),
+            (Literal::Ident("y")),
+        ];
 
         let lexer = Lexer::new(input.to_string());
         let mut parser = Parser::new(lexer);
@@ -534,6 +534,19 @@ mod tests {
 
         check_parser_errors(&parser);
         check_statements_len(&program, 3);
+
+        for (i, expected) in tests.into_iter().enumerate() {
+            let return_statement = match &program.statements[i] {
+                Statement::Return(rs) => rs,
+                generic => panic!("expected return statement, found {}", generic.type_string()),
+            };
+
+            assert_eq!(
+                return_statement.token.to_string(),
+                Token::Return.to_string()
+            );
+            check_literal_expression(&return_statement.value, expected);
+        }
 
         for statement in program.statements.iter() {
             assert!(

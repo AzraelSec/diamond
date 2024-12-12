@@ -182,11 +182,12 @@ impl Display for IfExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "if {}{}",
-            self.token.to_string(),
+            "if {} {{{}}} {}",
+            self.condition.to_string(),
+            self.consequence.to_string(),
             self.alternative
                 .as_ref()
-                .map_or_else(|| "".to_string(), |e| format!("else {}", e.to_string()))
+                .map_or_else(|| "".to_string(), |e| format!("else {{{}}}", e.to_string()))
         )
     }
 }

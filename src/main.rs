@@ -18,8 +18,17 @@ fn main() {
             break;
         }
 
-        for token in Lexer::new(input.to_string()).token_iter() {
-            println!("{:?}", token);
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = diamond_core::parser::Parser::new(lexer);
+        let program = parser.parse_program();
+
+        if parser.errors().is_empty() {
+            println!("{}", program.to_string());
+        } else {
+            println!("parser has {} errors:", parser.errors().len());
+            for msg in parser.errors().into_iter() {
+                println!("\tparser error: {}", msg);
+            }
         }
     }
 }
