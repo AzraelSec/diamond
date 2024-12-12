@@ -178,7 +178,7 @@ impl Display for IntegerLiteral {
 pub struct PrefixExpression {
     pub token: Rc<Token>,
     pub operator: PrefixOperator,
-    // note: this was needed to avoid infinite recursion between Expression and PrefixExpression
+    // NOTE: this was needed to avoid infinite recursion between Expression and PrefixExpression
     // :'(
     pub right: Box<Expression>,
 }
@@ -372,7 +372,7 @@ impl Display for ArrayIndex {
 #[derive(Debug, Clone, PartialEq)]
 pub struct HashLiteral {
     pub token: Rc<Token>,
-    // note: apparently implementing this as a map is very hard. I'let this be a vec to flat during
+    // NOTE: apparently implementing this as a map is very hard. I'let this be a vec to flat during
     // evaluation. Not very happy about it :(
     pub pairs: Vec<(Expression, Expression)>,
 }

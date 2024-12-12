@@ -10,5 +10,9 @@ name = "diamond_core"
 path = "src/lib.rs"
 
 [[bin]]
-name = "diamond_repl"
-path = "src/main.rs"
+name = "repl"
+path = "src/bin/repl.rs"
+
+[[bin]]
+name = "interpreter"
+path = "src/bin/interpreter.rs"

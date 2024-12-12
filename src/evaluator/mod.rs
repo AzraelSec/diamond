@@ -42,9 +42,11 @@ fn eval_let_statement(statement: LetStatement, env: &mut Environment) -> Object 
     if matches!(val, Object::Error(_)) {
         return val;
     }
+    // BUG: this change is not visible to the expression contained in val, so the function cannot
+    // be recoursive - it does not see its own definition!
     env.set(statement.name.value, val.clone());
 
-    // note: we could return the value here, but we'd need to define let as an expression
+    // NOTE: we could return the value here, but we'd need to define let as an expression
     Object::Null
 }
 
@@ -267,7 +269,6 @@ fn eval_function_literal(function: FunctionLiteral, env: &mut Environment) -> Ob
     Object::Function(FunctionObject {
         params: function.params,
         body: function.body,
-        // note: should this be a copy?
         env: env.clone(),
     })
 }
@@ -283,27 +284,35 @@ fn eval_function_call(function_call: FunctionCall, env: &mut Environment) -> Obj
         return params[0].clone();
     };
 
-    if let Object::Function(function_obj) = function {
-        let mut extended_env = extend_function_env(function_obj.clone(), params);
-        let evaluated = eval(
-            Node::Statement(Statement::Block(function_obj.body)),
-            &mut extended_env,
-        );
+    match function {
+        Object::Function(function_obj) => {
+            if function_obj.params.len() != params.len() {
+                return Object::Error(ErrorObject::WrongNumberOfParams(
+                    function_obj.params.len(),
+                    params.len(),
+                ));
+            }
 
-        return if let Object::Return(return_object) = evaluated {
-            *return_object
-        } else {
-            evaluated
-        };
+            dbg!(&function_obj.env);
+            let mut extended_env = extend_function_env(function_obj.clone(), params);
+            let evaluated = eval(
+                Node::Statement(Statement::Block(function_obj.body)),
+                &mut extended_env,
+            );
+
+            return if let Object::Return(return_object) = evaluated {
+                *return_object
+            } else {
+                evaluated
+            };
+        }
+        Object::BuiltIn(builtin_function) => builtin_function(params),
+        _ => Object::Error(ErrorObject::CallOnNonFunction(function.get_type())),
     }
-    if let Object::BuiltIn(builtin_function) = function {
-        return builtin_function(params);
-    }
-    Object::Error(ErrorObject::CallOnNonFunction(function.get_type()))
 }
 
 fn extend_function_env(function: FunctionObject, args: Vec<Object>) -> Environment {
-    let mut env = Environment::from_outer(Rc::new(function.env));
+    let mut env = Environment::from_outer(Rc::new(function.env.clone()));
     for (i, arg) in function.params.into_iter().enumerate() {
         env.set(arg.value, args[i].clone());
     }
@@ -315,7 +324,7 @@ fn eval_program(program: Program, env: &mut Environment) -> Object {
     for statement in program.statements {
         obj = eval(Node::Statement(statement), env);
 
-        // note: early return in case of return statement
+        // NOTE: early return in case of return statement
         match obj {
             Object::Return(return_object) => return *return_object,
             Object::Error(error_object) => return Object::Error(error_object),
@@ -330,7 +339,7 @@ fn eval_block_statement(block: BlockStatement, env: &mut Environment) -> Object 
     for statement in block.statements {
         obj = eval(Node::Statement(statement), env);
 
-        // note: early return without evaluating the return value
+        // NOTE: early return without evaluating the return value
         if matches!(obj, Object::Return(_) | Object::Error(_)) {
             return obj;
         }
@@ -427,7 +436,7 @@ mod tests {
 
     use super::*;
 
-    // todo: this should be shared!
+    // TODO: could this be shared?
     enum Literal {
         Int(i64),
         Null,

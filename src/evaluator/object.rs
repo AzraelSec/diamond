@@ -72,7 +72,6 @@ impl Hash for Object {
 pub enum ErrorObject {
     Generic(String),
     DivisionByZero,
-    // note: this could be an identifier (?)
     CallOnNonFunction(ObjectType),
     WrongNumberOfParams(usize, usize),
     InvalidHashKey(ObjectType),

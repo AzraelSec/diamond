@@ -189,7 +189,7 @@ impl Parser {
 
             self.next_token();
 
-            // note: left is Some(X) for sure otherwise it would have been catched by
+            // NOTE: left is Some(X) for sure otherwise it would have been catched by
             // `left.is_none()`
             left = self.parse_infix_expression(left.unwrap());
         }
@@ -507,7 +507,7 @@ impl Parser {
             self.next_token();
             true
         } else {
-            // note: this should be changed - we want for the Ident token to print "IDENT"
+            // TODO: this should be changed - we want for the Ident token to print "IDENT"
             self.peek_error(Token::Ident("ident".to_string()));
             false
         }

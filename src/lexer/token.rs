@@ -83,7 +83,7 @@ impl Display for Token {
 impl Token {
     pub fn from_char(c: Option<char>, peek: Option<char>) -> (Option<Token>, bool) {
         match c {
-            // note: we're not handling Token::Bang and Token::Assign since they could be EQ/NotEq
+            // NOTE: we're not handling Token::Bang and Token::Assign since they could be EQ/NotEq
             Some('=') => match peek {
                 Some('=') => (Some(Token::EQ), true),
                 _ => (Some(Token::Assign), false),

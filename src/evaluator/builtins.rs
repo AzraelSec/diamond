@@ -90,8 +90,9 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
                 return Object::Error(err);
             }
 
-            match &args[0] {
-                Object::String(val) => {
+            let val = args[0].clone();
+            match val {
+                Object::String(_) | Object::Integer(_) | Object::Array(_) => {
                     print!("{}", val);
                     Object::Null
                 }

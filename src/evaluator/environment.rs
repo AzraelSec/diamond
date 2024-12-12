@@ -25,11 +25,12 @@ impl Environment {
 
     pub fn get(&self, name: &str) -> Option<&Object> {
         if let Some(local) = self.store.get(name) {
-            return Some(local);
+            Some(local)
         } else if let Some(outer) = &self.outer {
-            return outer.get(name);
+            outer.get(name)
+        } else {
+            None
         }
-        None
     }
 
     pub fn set(&mut self, name: String, value: Object) -> Object {

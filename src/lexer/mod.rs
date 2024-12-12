@@ -59,7 +59,7 @@ impl Lexer {
                 } else if Self::is_digit(self.ch) {
                     return self.read_integer();
                 } else {
-                    // note: there must be a better way
+                    // TODO: there must be a better way
                     Token::Illegal((if let Some(ch) = self.ch { ch } else { '?' }).to_string())
                 }
             }
@@ -104,7 +104,7 @@ impl Lexer {
         let start_pos = self.position + 1;
         self.read_char();
 
-        // note: this is not perfect, but it's good enough for now
+        // NOTE: this is not perfect, but it's good enough for now
         while self.ch.is_some() && self.ch != Some('"') {
             self.read_char();
         }
