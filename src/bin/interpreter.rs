@@ -9,14 +9,17 @@ use diamond_core::{
 fn main() {
     let args = env::args().collect::<Vec<String>>();
     if args.len() < 2 {
-        eprintln!("Usage: diamond [file]");
+        eprintln!("Usage: diamond [file].dd");
         return;
     }
 
     let executable_file_name = args.get(1).unwrap();
-    let executable_code = fs::read_to_string(executable_file_name);
+    if !executable_file_name.ends_with(".dd") {
+        eprintln!("File extension must be .dd");
+        return;
+    }
 
-    let executable_code = match executable_code {
+    let executable_code = match fs::read_to_string(executable_file_name) {
         Ok(code) => code,
         Err(_) => {
             eprintln!("Could not read file {}", executable_file_name);

@@ -154,6 +154,18 @@ fn eval_plus_infix_expression(left: Object, right: Object) -> Object {
         (Object::String(left), Object::String(right)) => {
             Object::String(format!("{}{}", left, right))
         }
+        (Object::String(left), Object::Integer(right)) => {
+            Object::String(format!("{}{}", left, right))
+        }
+        (Object::Integer(left), Object::String(right)) => {
+            Object::String(format!("{}{}", left, right))
+        }
+        (Object::String(left), Object::Boolean(right)) => {
+            Object::String(format!("{}{}", left, right))
+        }
+        (Object::Boolean(left), Object::String(right)) => {
+            Object::String(format!("{}{}", left, right))
+        }
         (left, right) => Object::Error(ErrorObject::UnknownInfixOperator(
             left.get_type(),
             InfixOperator::Plus,

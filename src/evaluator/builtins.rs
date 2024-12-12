@@ -92,8 +92,8 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
 
             let val = args[0].clone();
             match val {
-                Object::String(_) | Object::Integer(_) | Object::Array(_) => {
-                    print!("{}", val);
+                Object::String(_) | Object::Integer(_) | Object::Array(_) | Object::Boolean(_) => {
+                    println!("{}", val);
                     Object::Null
                 }
                 generic => Object::Error(ErrorObject::Generic(format!(
