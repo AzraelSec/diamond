@@ -16,6 +16,7 @@ impl Display for ObjectType {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum Object {
     Null,
     Integer(i64),
