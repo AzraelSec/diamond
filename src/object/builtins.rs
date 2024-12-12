@@ -4,8 +4,8 @@ pub type BuiltInFun = fn(Vec<Object>) -> Object;
 pub fn get_builtin(ident: &str) -> Option<Object> {
     match ident {
         "len" => Some(Object::BuiltIn(|args| -> Object {
-            if args.len() != 1 {
-                return Object::Error(ErrorObject::WrongNumberOfParams(1, args.len()));
+            if let Err(err) = check_args(&args, 1) {
+                return Object::Error(err);
             };
 
             match &args[0] {
@@ -18,8 +18,8 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
             }
         })),
         "first" => Some(Object::BuiltIn(|args| -> Object {
-            if args.len() != 1 {
-                return Object::Error(ErrorObject::WrongNumberOfParams(1, args.len()));
+            if let Err(err) = check_args(&args, 1) {
+                return Object::Error(err);
             };
 
             match &args[0] {
@@ -37,8 +37,8 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
             }
         })),
         "last" => Some(Object::BuiltIn(|args| -> Object {
-            if args.len() != 1 {
-                return Object::Error(ErrorObject::WrongNumberOfParams(1, args.len()));
+            if let Err(err) = check_args(&args, 1) {
+                return Object::Error(err);
             };
 
             match &args[0] {
@@ -56,8 +56,8 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
             }
         })),
         "rest" => Some(Object::BuiltIn(|args| -> Object {
-            if args.len() != 1 {
-                return Object::Error(ErrorObject::WrongNumberOfParams(1, args.len()));
+            if let Err(err) = check_args(&args, 1) {
+                return Object::Error(err);
             };
 
             match &args[0] {
@@ -69,8 +69,8 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
             }
         })),
         "push" => Some(Object::BuiltIn(|args| -> Object {
-            if args.len() != 2 {
-                return Object::Error(ErrorObject::WrongNumberOfParams(2, args.len()));
+            if let Err(err) = check_args(&args, 2) {
+                return Object::Error(err);
             };
 
             match (&args[0], &args[1]) {
@@ -85,6 +85,30 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
                 ))),
             }
         })),
+        "say" => Some(Object::BuiltIn(|args| -> Object {
+            if let Err(err) = check_args(&args, 1) {
+                return Object::Error(err);
+            }
+
+            match &args[0] {
+                Object::String(val) => {
+                    print!("{}", val);
+                    Object::Null
+                }
+                generic => Object::Error(ErrorObject::Generic(format!(
+                    "say builtin does not support type {}",
+                    generic.get_type()
+                ))),
+            }
+        })),
         _ => None,
+    }
+}
+
+fn check_args(args: &Vec<Object>, expected: usize) -> Result<(), ErrorObject> {
+    if args.len() != expected {
+        Err(ErrorObject::WrongNumberOfParams(expected, args.len()))
+    } else {
+        Ok(())
     }
 }

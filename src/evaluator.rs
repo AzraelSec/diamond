@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Index, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     ast::{
@@ -62,7 +62,6 @@ fn eval_expression(expression: Expression, env: &mut Environment) -> Object {
         Expression::ArrayLiteral(array_literal) => eval_array_literal(array_literal, env),
         Expression::ArrayIndex(array_index) => eval_array_index(array_index, env),
         Expression::HashLiteral(hash) => eval_hash_literal(hash, env),
-        _ => panic!("unimplemented expression type {}", expression.type_string()),
     }
 }
 
@@ -431,10 +430,8 @@ mod tests {
     use super::*;
 
     // todo: this should be shared!
-    enum Literal<'a> {
-        Ident(&'a str),
+    enum Literal {
         Int(i64),
-        Bool(bool),
         Null,
     }
 
@@ -526,7 +523,7 @@ mod tests {
             let evaluated = check_eval(input);
             match (&evaluated, expected) {
                 (Object::Null, Literal::Null) => {}
-                (Object::Null, Literal::Int(_) | Literal::Bool(_) | Literal::Ident(_)) => {
+                (Object::Null, Literal::Int(_)) => {
                     panic!("expected null, got: {}", evaluated)
                 }
                 (evaluated, Literal::Int(expected)) => {
@@ -839,7 +836,6 @@ mod tests {
             match expected {
                 Literal::Int(expected) => check_integer_object(obj, expected),
                 Literal::Null => assert!(matches!(obj, Object::Null)),
-                _ => panic!("unexpected object {}", obj),
             }
         }
     }

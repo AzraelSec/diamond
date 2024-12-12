@@ -96,23 +96,6 @@ impl InfixOperator {
 }
 
 impl Expression {
-    fn token_literal(&self) -> String {
-        match self {
-            Expression::Identifier(x) => x.token_literal(),
-            Expression::IntegerLiteral(x) => x.token_literal(),
-            Expression::StringLiteral(x) => x.to_string(),
-            Expression::Prefix(x) => x.token_literal(),
-            Expression::Infix(x) => x.token_literal(),
-            Expression::Boolean(x) => x.token_literal(),
-            Expression::If(x) => x.token_literal(),
-            Expression::FunctionLiteral(x) => x.token_literal(),
-            Expression::FunctionCall(x) => x.token_literal(),
-            Expression::ArrayLiteral(x) => x.token_literal(),
-            Expression::ArrayIndex(x) => x.token_literal(),
-            Expression::HashLiteral(x) => x.token_literal(),
-        }
-    }
-
     pub fn type_string(&self) -> &str {
         match self {
             Expression::Identifier(_) => "Expression::Identifier",
