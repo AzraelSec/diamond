@@ -464,12 +464,15 @@ mod tests {
             check_parser_errors(&parser);
             check_statements_len(&program, 1);
 
-            match &program.statements[0] {
-                Statement::Expression(statement) => {
-                    check_literal_expression(&statement.expression, expected)
-                }
-                s => panic!("expected expression statement, found: {}", s.type_string()),
-            }
+            let statement = match &program.statements[0] {
+                Statement::Expression(statement) => statement,
+                generic => panic!(
+                    "expected expression statement, found: {}",
+                    generic.type_string()
+                ),
+            };
+
+            check_literal_expression(&statement.expression, expected);
         }
     }
 
@@ -490,20 +493,28 @@ mod tests {
             check_parser_errors(&parser);
             check_statements_len(&program, 1);
 
-            match &program.statements[0] {
-                Statement::Expression(exp) => match &exp.expression {
-                    Expression::Prefix(prefix_exp) => {
-                        assert_eq!(
-                            prefix_exp.operator, operator,
-                            "unexpected operator {} for prefix expression, expected: {}",
-                            prefix_exp.operator, operator
-                        );
-                        check_literal_expression(&prefix_exp.right, expected);
-                    }
-                    exp => panic!("expected prefix expression, found {}", exp.type_string()),
-                },
-                s => panic!("expected expression statement, found {}", s.type_string()),
-            }
+            let statement = match &program.statements[0] {
+                Statement::Expression(expression) => expression,
+                generic => panic!(
+                    "expected expression statement, found {}",
+                    generic.type_string()
+                ),
+            };
+
+            let expression = match &statement.expression {
+                Expression::Prefix(prefix_expression) => prefix_expression,
+                generic => panic!(
+                    "expected prefix expression, found {}",
+                    generic.type_string()
+                ),
+            };
+
+            assert_eq!(
+                expression.operator, operator,
+                "unexpected operator {} for prefix expression, expected: {}",
+                expression.operator, operator
+            );
+            check_literal_expression(&expression.right, expected);
         }
     }
 
@@ -546,12 +557,15 @@ mod tests {
             check_parser_errors(&parser);
             check_statements_len(&program, 1);
 
-            match &program.statements[0] {
-                Statement::Expression(statement) => {
-                    check_infix_expression(&statement.expression, left, operator, right)
-                }
-                s => panic!("expected expression statement, found {}", s.type_string()),
-            }
+            let statement = match &program.statements[0] {
+                Statement::Expression(statement) => statement,
+                generic => panic!(
+                    "expected expression statement, found {}",
+                    generic.type_string()
+                ),
+            };
+
+            check_infix_expression(&statement.expression, left, operator, right)
         }
     }
 
@@ -621,13 +635,16 @@ mod tests {
             check_parser_errors(&parser);
             check_statements_len(&program, 1);
 
-            match &program.statements[0] {
-                Statement::Let(exp) => {
-                    assert_eq!(exp.name.value, expected_name);
-                    check_boolean_literal(&exp.value, expected_value);
-                }
-                s => panic!("expected expression statement, found {}", s.type_string()),
-            }
+            let statement = match &program.statements[0] {
+                Statement::Let(statement) => statement,
+                generic => panic!(
+                    "expected expression statement, found {}",
+                    generic.type_string()
+                ),
+            };
+
+            assert_eq!(statement.name.value, expected_name);
+            check_boolean_literal(&statement.value, expected_value);
         }
     }
 
@@ -642,33 +659,41 @@ mod tests {
         check_parser_errors(&parser);
         check_statements_len(&program, 1);
 
-        match &program.statements[0] {
-            Statement::Expression(exp) => match &exp.expression {
-                Expression::If(exp) => {
-                    check_infix_expression(
-                        &exp.condition,
-                        Literal::Ident("x"),
-                        "<",
-                        Literal::Ident("y"),
-                    );
+        let statement = match &program.statements[0] {
+            Statement::Expression(expression) => expression,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
 
-                    assert!(
-                        exp.consequence.statements.len() == 1,
-                        "consequence is not 1 statements. got={}",
-                        exp.consequence.statements.len()
-                    );
+        let expression = match &statement.expression {
+            Expression::If(if_expression) => if_expression,
+            generic => panic!("expected if expression, found {}", generic.type_string()),
+        };
 
-                    match &exp.consequence.statements[0] {
-                        Statement::Expression(statement) => {
-                            check_ident_literal(&statement.expression, "x");
-                        }
-                        s => panic!("expected expression statement, found {}", s.type_string()),
-                    }
-                }
-                s => panic!("expected if expression, found {}", s.type_string()),
-            },
-            s => panic!("expected expression statement, found {}", s.type_string()),
-        }
+        check_infix_expression(
+            &expression.condition,
+            Literal::Ident("x"),
+            "<",
+            Literal::Ident("y"),
+        );
+
+        assert!(
+            expression.consequence.statements.len() == 1,
+            "consequence is not 1 statements. got={}",
+            expression.consequence.statements.len()
+        );
+
+        let consequence_expression = match &expression.consequence.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
+
+        check_ident_literal(&consequence_expression.expression, "x");
     }
 
     #[test]
@@ -682,54 +707,60 @@ mod tests {
         check_parser_errors(&parser);
         check_statements_len(&program, 1);
 
-        match &program.statements[0] {
-            Statement::Expression(exp) => match &exp.expression {
-                Expression::If(exp) => {
-                    check_infix_expression(
-                        &exp.condition,
-                        Literal::Ident("x"),
-                        "<",
-                        Literal::Ident("y"),
-                    );
+        let statement = match &program.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
 
-                    assert!(
-                        exp.consequence.statements.len() == 1,
-                        "consequence is not 1 statements. got={}",
-                        exp.consequence.statements.len()
-                    );
+        let if_expression = match &statement.expression {
+            Expression::If(expression) => expression,
+            generic => panic!("expected if expression, found {}", generic.type_string()),
+        };
 
-                    match &exp.consequence.statements[0] {
-                        Statement::Expression(statement) => {
-                            check_ident_literal(&statement.expression, "x");
-                        }
-                        s => panic!("expected expression statement, found {}", s.type_string()),
-                    }
+        check_infix_expression(
+            &if_expression.condition,
+            Literal::Ident("x"),
+            "<",
+            Literal::Ident("y"),
+        );
 
-                    match &exp.alternative {
-                        Some(block) => {
-                            assert!(
-                                block.statements.len() == 1,
-                                "consequence is not 1 statements. got={}",
-                                block.statements.len()
-                            );
+        assert!(
+            if_expression.consequence.statements.len() == 1,
+            "consequence is not 1 statements. got={}",
+            if_expression.consequence.statements.len()
+        );
 
-                            match &block.statements[0] {
-                                Statement::Expression(statement) => {
-                                    check_ident_literal(&statement.expression, "y");
-                                }
-                                s => panic!(
-                                    "expected expression statement, found {}",
-                                    s.type_string()
-                                ),
-                            }
-                        }
-                        _ => panic!("alternative block not found, expected it to be there"),
-                    }
-                }
-                s => panic!("expected if expression, found {}", s.type_string()),
-            },
-            s => panic!("expected expression statement, found {}", s.type_string()),
-        }
+        let consequence_statement = match &if_expression.consequence.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
+        check_ident_literal(&consequence_statement.expression, "x");
+
+        let alternative_statement = match &if_expression.alternative {
+            Some(block) => block,
+            _ => panic!("alternative block not found, expected it to be there"),
+        };
+
+        assert!(
+            alternative_statement.statements.len() == 1,
+            "consequence is not 1 statements. got={}",
+            alternative_statement.statements.len()
+        );
+
+        let alternative_expression = match &alternative_statement.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
+        check_ident_literal(&alternative_expression.expression, "y");
     }
 
     enum Literal<'a> {
@@ -739,18 +770,21 @@ mod tests {
     }
 
     fn check_infix_expression(exp: &Expression, left: Literal, operator: &str, right: Literal) {
-        match exp {
-            Expression::Infix(exp) => {
-                check_literal_expression(&exp.left, left);
-                assert_eq!(
-                    exp.operator, operator,
-                    "wrong infix operator {}, want={}",
-                    exp.operator, operator
-                );
-                check_literal_expression(&exp.right, right);
-            }
-            _ => panic!("expected infix expression, found: {}", exp.type_string()),
-        }
+        let infix_expression = match exp {
+            Expression::Infix(infix) => infix,
+            generic => panic!(
+                "expected infix expression, found: {}",
+                generic.type_string()
+            ),
+        };
+
+        check_literal_expression(&infix_expression.left, left);
+        assert_eq!(
+            &infix_expression.operator, operator,
+            "wrong infix operator {}, want={}",
+            &infix_expression.operator, operator
+        );
+        check_literal_expression(&infix_expression.right, right);
     }
 
     fn check_literal_expression(exp: &Expression, expected: Literal) {
@@ -762,43 +796,43 @@ mod tests {
     }
 
     fn check_ident_literal(exp: &Expression, expected: &str) {
-        match &exp {
-            Expression::Identifier(lit_ident) => {
-                assert_eq!(lit_ident.value, expected);
-                assert_eq!(lit_ident.token_literal(), expected);
-            }
-            exp => panic!("expected ident literal, found {}", exp.type_string()),
-        }
+        let identifier = match exp {
+            Expression::Identifier(identifier) => identifier,
+            generic => panic!("expected ident literal, found {}", generic.type_string()),
+        };
+
+        assert_eq!(identifier.value, expected);
+        assert_eq!(identifier.token_literal(), expected);
     }
 
     fn check_boolean_literal(exp: &Expression, expected: bool) {
-        match &exp {
-            Expression::Boolean(lit_integer) => {
-                assert_eq!(lit_integer.value, expected);
-                assert_eq!(lit_integer.token_literal(), expected.to_string());
-            }
-            exp => panic!("expected integer literal, found {}", exp.type_string()),
-        }
+        let boolean_expression = match exp {
+            Expression::Boolean(boolean) => boolean,
+            generic => panic!("expected integer literal, found {}", generic.type_string()),
+        };
+
+        assert_eq!(boolean_expression.value, expected);
+        assert_eq!(boolean_expression.token_literal(), expected.to_string());
     }
 
     fn check_integer_literal(exp: &Expression, expected: u64) {
-        match exp {
-            Expression::IntegerLiteral(integer_literal) => {
-                assert_eq!(
-                    integer_literal.value, expected,
-                    "unexpected integer literal value {}, expected: {}",
-                    integer_literal.value, expected
-                );
-                assert_eq!(
-                    integer_literal.token_literal(),
-                    expected.to_string(),
-                    "unexpected integer literal token {}, expected: {}",
-                    integer_literal.token_literal(),
-                    expected.to_string()
-                );
-            }
-            _ => panic!("expected integer literal, found: {}", exp.type_string()),
-        }
+        let integer_literal = match exp {
+            Expression::IntegerLiteral(integer_literal) => integer_literal,
+            generic => panic!("expected integer literal, found: {}", generic.type_string()),
+        };
+
+        assert_eq!(
+            integer_literal.value, expected,
+            "unexpected integer literal value {}, expected: {}",
+            integer_literal.value, expected
+        );
+        assert_eq!(
+            integer_literal.token_literal(),
+            expected.to_string(),
+            "unexpected integer literal token {}, expected: {}",
+            integer_literal.token_literal(),
+            expected.to_string()
+        );
     }
 
     fn check_statements_len(program: &Program, wanted: usize) {
