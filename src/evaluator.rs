@@ -5,7 +5,8 @@ use crate::{
             PrefixOperator,
         },
         node::Node,
-        statement::Statement,
+        program::Program,
+        statement::{BlockStatement, ReturnStatement, Statement},
     },
     object::Object,
 };
@@ -14,7 +15,7 @@ pub fn eval(node: Node) -> Option<Object> {
     match node {
         Node::Expression(expression) => eval_expression(expression),
         Node::Statement(statement) => eval_statement(statement),
-        Node::Program(program) => eval_statements(program.statements),
+        Node::Program(program) => eval_program(program),
     }
 }
 
@@ -23,7 +24,8 @@ fn eval_statement(statement: Statement) -> Option<Object> {
         Statement::Expression(expression_statement) => {
             eval_expression(expression_statement.expression)
         }
-        Statement::Block(block) => eval_statements(block.statements),
+        Statement::Block(block) => eval_block_statement(block),
+        Statement::Return(return_statement) => eval_return_statement(return_statement),
         _ => None,
     }
 }
@@ -52,6 +54,7 @@ fn eval_bang_operator_expression(right: Object) -> Option<Object> {
         Object::Boolean(val) => Some(Object::Boolean(!val)),
         Object::Null => Some(Object::Boolean(true)),
         Object::Integer(integer) => Some(Object::Boolean(integer == 0)),
+        _ => None,
     }
 }
 
@@ -155,12 +158,36 @@ fn eval_conditional_expression(expression: IfExpression) -> Option<Object> {
     Some(Object::Null)
 }
 
-fn eval_statements(statements: Vec<Statement>) -> Option<Object> {
+fn eval_program(program: Program) -> Option<Object> {
     let mut obj = None;
-    for statement in statements {
+    for statement in program.statements {
         obj = eval(Node::Statement(statement));
+
+        // note: early return in case of return statement
+        if let Some(Object::Return(return_object)) = obj {
+            return Some(*return_object);
+        }
     }
     obj
+}
+
+fn eval_block_statement(block: BlockStatement) -> Option<Object> {
+    let mut obj = None;
+    for statement in block.statements {
+        obj = eval(Node::Statement(statement));
+
+        // note: early return without evaluating the return value
+        if matches!(obj, Some(Object::Return(_))) {
+            return obj;
+        }
+    }
+    obj
+}
+
+fn eval_return_statement(statement: ReturnStatement) -> Option<Object> {
+    Some(Object::Return(Box::new(eval(Node::Expression(
+        statement.value,
+    ))?)))
 }
 
 #[cfg(test)]
@@ -271,6 +298,30 @@ mod tests {
                 }
                 _ => panic!("unexpected object {}", evaluated),
             }
+        }
+    }
+
+    #[test]
+    fn test_return_statement() {
+        let tests = vec![
+            ("return 10;", 10),
+            ("return 10; 9;", 10),
+            ("return 2 * 5; 9;", 10),
+            ("9; return 2 * 5; 9;", 10),
+            (
+                "if (10 > 1) {
+                    if (10 > 1) {
+                        return 10;
+                    }
+                    return 1;
+                }",
+                10,
+            ),
+        ];
+
+        for (input, expected) in tests {
+            let evaluated = assert_some_object(check_eval(input));
+            check_integer_object(evaluated, expected);
         }
     }
 

@@ -4,6 +4,7 @@ pub enum ObjectType {
     Null,
     Integer,
     Boolean,
+    Return,
 }
 
 impl Display for ObjectType {
@@ -12,6 +13,7 @@ impl Display for ObjectType {
             ObjectType::Null => write!(f, "ObjectType::Null"),
             ObjectType::Integer => write!(f, "ObjectType::Integer"),
             ObjectType::Boolean => write!(f, "ObjectType::Boolean"),
+            ObjectType::Return => write!(f, "ObjectType::Return"),
         }
     }
 }
@@ -21,6 +23,7 @@ pub enum Object {
     Null,
     Integer(i64),
     Boolean(bool),
+    Return(Box<Object>),
 }
 
 impl Display for Object {
@@ -29,6 +32,7 @@ impl Display for Object {
             Self::Null => write!(f, "null"),
             Self::Integer(obj) => write!(f, "{}", obj),
             Self::Boolean(obj) => write!(f, "{}", obj),
+            Self::Return(obj) => write!(f, "{}", obj),
         }
     }
 }
@@ -39,6 +43,7 @@ impl Object {
             Object::Null => ObjectType::Null,
             Object::Integer(_) => ObjectType::Integer,
             Object::Boolean(_) => ObjectType::Boolean,
+            Object::Return(_) => ObjectType::Return,
         }
     }
 }
