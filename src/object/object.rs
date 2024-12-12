@@ -1,4 +1,5 @@
-use std::fmt::Display;
+use std::hash::Hash;
+use std::{collections::HashMap, fmt::Display};
 
 use crate::{
     ast::{
@@ -21,6 +22,7 @@ pub enum ObjectType {
     Function,
     BuiltIn,
     Array,
+    HashMap,
 }
 
 impl Display for ObjectType {
@@ -35,6 +37,7 @@ impl Display for ObjectType {
             ObjectType::BuiltIn => write!(f, "built-in"),
             ObjectType::Error => write!(f, "error"),
             ObjectType::Array => write!(f, "array"),
+            ObjectType::HashMap => write!(f, "hashmap"),
         }
     }
 }
@@ -50,6 +53,23 @@ pub enum Object {
     BuiltIn(BuiltInFun),
     Error(ErrorObject),
     Array(Vec<Object>),
+    HashMap(HashMap<Object, Object>),
+}
+
+impl Eq for Object {}
+
+impl Hash for Object {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::String(val) => val.hash(state),
+            Self::Integer(val) => val.hash(state),
+            Self::Boolean(val) => val.hash(state),
+            generic => panic!(
+                "unexpected object used as hashmap key: {}",
+                generic.get_type()
+            ),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,6 +79,7 @@ pub enum ErrorObject {
     // note: this could be an identifier (?)
     CallOnNonFunction(ObjectType),
     WrongNumberOfParams(usize, usize),
+    InvalidHashKey(ObjectType),
     IdentifierNotFound(String),
     UnknownPrefixOperator(PrefixOperator, ObjectType),
     UnknownInfixOperator(ObjectType, InfixOperator, ObjectType),
@@ -85,6 +106,11 @@ impl Display for ErrorObject {
                     expected, got
                 )
             }
+            ErrorObject::InvalidHashKey(tpe) => write!(
+                f,
+                "hash key must be a string, integer or boolean, found {}",
+                tpe
+            ),
             ErrorObject::IdentifierNotFound(identifier) => {
                 write!(f, "identifier not found: {}", identifier)
             }
@@ -139,6 +165,15 @@ impl Display for Object {
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
+            Self::HashMap(hashmap) => write!(
+                f,
+                "{{{}}}",
+                hashmap
+                    .iter()
+                    .map(|(key, val)| format!("{}: {}", key.to_string(), val.to_string()))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
         }
     }
 }
@@ -155,7 +190,15 @@ impl Object {
             Object::BuiltIn(_) => ObjectType::BuiltIn,
             Object::Error(_) => ObjectType::Error,
             Object::Array(_) => ObjectType::Array,
+            Object::HashMap(_) => ObjectType::HashMap,
         }
+    }
+
+    pub fn can_be_hash_key(&self) -> bool {
+        matches!(
+            self,
+            Object::String(_) | Object::Integer(_) | Object::Boolean(_)
+        )
     }
 }
 
@@ -193,6 +236,10 @@ mod tests {
             (
                 Object::Error(ErrorObject::IdentifierNotFound("foobar".to_string())),
                 "identifier not found: foobar",
+            ),
+            (
+                Object::Error(ErrorObject::InvalidHashKey(ObjectType::Function)),
+                "hash key must be a string, integer or boolean, found function",
             ),
         ];
 

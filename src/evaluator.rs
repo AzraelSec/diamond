@@ -1,10 +1,11 @@
-use std::{ops::Index, rc::Rc};
+use std::{collections::HashMap, ops::Index, rc::Rc};
 
 use crate::{
     ast::{
         expression::{
-            ArrayIndex, ArrayLiteral, Expression, FunctionCall, FunctionLiteral, Identifier,
-            IfExpression, InfixExpression, InfixOperator, PrefixExpression, PrefixOperator,
+            ArrayIndex, ArrayLiteral, Expression, FunctionCall, FunctionLiteral, HashLiteral,
+            Identifier, IfExpression, InfixExpression, InfixOperator, PrefixExpression,
+            PrefixOperator,
         },
         node::Node,
         program::Program,
@@ -60,6 +61,8 @@ fn eval_expression(expression: Expression, env: &mut Environment) -> Object {
         Expression::FunctionCall(function_call) => eval_function_call(function_call, env),
         Expression::ArrayLiteral(array_literal) => eval_array_literal(array_literal, env),
         Expression::ArrayIndex(array_index) => eval_array_index(array_index, env),
+        Expression::HashLiteral(hash) => eval_hash_literal(hash, env),
+        _ => panic!("unimplemented expression type {}", expression.type_string()),
     }
 }
 
@@ -378,12 +381,41 @@ fn eval_array_index(expression: ArrayIndex, env: &mut Environment) -> Object {
                 left[index as usize].clone()
             }
         }
+        (Object::HashMap(left), index) => {
+            if !index.can_be_hash_key() {
+                Object::Error(ErrorObject::InvalidHashKey(index.get_type()))
+            } else {
+                left.get(&index).cloned().unwrap_or(Object::Null)
+            }
+        }
         (left, index) => Object::Error(ErrorObject::Generic(format!(
             "array index not supported for {}[{}]",
             left.get_type(),
             index.get_type()
         ))),
     }
+}
+
+fn eval_hash_literal(hash: HashLiteral, env: &mut Environment) -> Object {
+    let mut hashmap: HashMap<Object, Object> = HashMap::new();
+    for (key, value) in hash.pairs {
+        let key = eval(Node::Expression(key), env);
+        if matches!(key, Object::Error(_)) {
+            return key;
+        };
+
+        if !key.can_be_hash_key() {
+            return Object::Error(ErrorObject::InvalidHashKey(key.get_type()));
+        }
+
+        let value = eval(Node::Expression(value), env);
+        if matches!(value, Object::Error(_)) {
+            return value;
+        };
+
+        hashmap.insert(key, value);
+    }
+    Object::HashMap(hashmap)
 }
 
 #[cfg(test)]
@@ -807,6 +839,87 @@ mod tests {
             match expected {
                 Literal::Int(expected) => check_integer_object(obj, expected),
                 Literal::Null => assert!(matches!(obj, Object::Null)),
+                _ => panic!("unexpected object {}", obj),
+            }
+        }
+    }
+
+    #[test]
+    fn test_hash_literal() {
+        let input = "
+            let two = \"two\";
+            {
+                \"one\": 10 - 9,
+                two: 1 + 1,
+                \"thr\" + \"ee\": 6 / 2,
+                4: 4,
+                true: 5,
+                false: 6,
+                false: 7
+            }
+        ";
+
+        let evaluated = check_eval(input);
+
+        let hashmap = match evaluated {
+            Object::HashMap(hashmap) => hashmap,
+            _ => panic!("Expected hashmap, found {}", evaluated.get_type()),
+        };
+
+        assert_eq!(
+            hashmap.len(),
+            6,
+            "wrong number of keys {}, want=6",
+            hashmap.len()
+        );
+
+        let expected: Vec<(Object, i64)> = vec![
+            (Object::String("one".to_string()), 1),
+            (Object::String("two".to_string()), 2),
+            (Object::String("three".to_string()), 3),
+            (Object::Integer(4), 4),
+            (Object::Boolean(true), 5),
+            (Object::Boolean(false), 7),
+        ];
+
+        dbg!(&hashmap);
+
+        for (key, value) in expected {
+            let obj = match hashmap.get(&key) {
+                Some(obj) => obj,
+                None => panic!("key {} not found", key),
+            };
+
+            check_integer_object(obj.clone(), value);
+        }
+    }
+
+    #[test]
+    fn test_hash_index() {
+        let tests = [
+            ("{\"foo\": 5}[\"foo\"]", Object::Integer(5)),
+            ("{\"foo\": 5}[\"bar\"]", Object::Null),
+            ("let key = \"foo\"; {\"foo\": 5}[key]", Object::Integer(5)),
+            ("{}[\"foo\"]", Object::Null),
+            ("{5: 5}[5]", Object::Integer(5)),
+            ("{true: 5}[true]", Object::Integer(5)),
+            ("{false: 5}[false]", Object::Integer(5)),
+            (
+                "{\"a\": 1}[fn (x) {x}]",
+                Object::Error(ErrorObject::Generic(
+                    "hash key must be a string, integer or boolean, found function".to_string(),
+                )),
+            ),
+        ];
+
+        for (input, expected) in tests {
+            let obj = check_eval(input);
+            match expected {
+                Object::Integer(expected) => check_integer_object(obj, expected),
+                Object::Null => assert!(matches!(obj, Object::Null)),
+                Object::Error(ErrorObject::Generic(expected)) => {
+                    assert_eq!(expected, obj.to_string())
+                }
                 _ => panic!("unexpected object {}", obj),
             }
         }

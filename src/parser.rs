@@ -4,7 +4,7 @@ use crate::{
     ast::{
         expression::{
             ArrayIndex, ArrayLiteral, BooleanExpression, Expression, FunctionCall, FunctionLiteral,
-            Identifier, IfExpression, InfixExpression, InfixOperator, IntegerLiteral,
+            HashLiteral, Identifier, IfExpression, InfixExpression, InfixOperator, IntegerLiteral,
             PrefixExpression, PrefixOperator,
         },
         program::Program,
@@ -209,6 +209,7 @@ impl Parser {
             Token::Function => self.parse_function_literal(),
             Token::String(_) => self.parse_string_literal_expression(),
             Token::Lbracket => self.parse_array_literal_expression(),
+            Token::Lbrace => self.parse_hash_literal_expression(),
             _ => None,
         }
     }
@@ -446,6 +447,36 @@ impl Parser {
         }
 
         Some(elements)
+    }
+
+    fn parse_hash_literal_expression(&mut self) -> Option<Expression> {
+        let curr_token = self.curr_token.clone();
+        let mut pairs = Vec::new();
+
+        while !self.peek_token_is(Token::Rbrace) {
+            self.next_token();
+            let key = self.parse_expression(Precedence::LOWEST)?;
+
+            if !self.expect_peek(Token::Colon) {
+                return None;
+            }
+
+            self.next_token();
+            let value = self.parse_expression(Precedence::LOWEST)?;
+            pairs.push((key, value));
+            if !self.peek_token_is(Token::Rbrace) && !self.expect_peek(Token::Comma) {
+                return None;
+            }
+        }
+
+        if !self.expect_peek(Token::Rbrace) {
+            return None;
+        }
+
+        Some(Expression::HashLiteral(HashLiteral {
+            token: curr_token,
+            pairs,
+        }))
     }
 
     fn curr_token_is(&self, t: Token) -> bool {
@@ -1215,6 +1246,129 @@ mod tests {
             InfixOperator::Plus,
             Literal::Int(1),
         );
+    }
+
+    #[test]
+    fn test_hash_literal() {
+        let tests = [
+            ("{}", vec![]),
+            (
+                "{\"one\": 1, \"two\": 2, \"three\": 3}",
+                vec![("one", 1), ("two", 2), ("three", 3)],
+            ),
+        ];
+
+        for (idx, (input, expected)) in tests.iter().enumerate() {
+            let lexer = Lexer::new(input.to_string());
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+            check_statements_len(&program, 1);
+
+            let statement = match &program.statements[0] {
+                Statement::Expression(statement) => statement,
+                generic => panic!(
+                    "[{}] expected expression statement, found {}",
+                    idx,
+                    generic.type_string()
+                ),
+            };
+
+            let hash_literal_expression = match &statement.expression {
+                Expression::HashLiteral(expression) => expression,
+                generic => panic!(
+                    "[{}] expected hash literal expression, found {}",
+                    idx,
+                    generic.type_string()
+                ),
+            };
+
+            assert_eq!(
+                hash_literal_expression.pairs.len(),
+                expected.len(),
+                "[{}] wrong number of keys found {}, want={}",
+                idx,
+                hash_literal_expression.pairs.len(),
+                expected.len()
+            );
+
+            for (i, (exp_key, exp_value)) in expected.into_iter().enumerate() {
+                let (key, value) = &hash_literal_expression.pairs[i];
+                check_string_literal(key, exp_key);
+                check_integer_literal(value, *exp_value);
+            }
+        }
+    }
+
+    #[test]
+    fn test_hash_literal_with_expressions() {
+        let input = "{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5}";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+        check_statements_len(&program, 1);
+
+        let statement = match &program.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
+
+        let hash_literal_expression = match &statement.expression {
+            Expression::HashLiteral(expression) => expression,
+            generic => panic!(
+                "expected hash literal expression, found {}",
+                generic.type_string()
+            ),
+        };
+
+        let expected: Vec<(&str, Box<dyn Fn(&Expression)>)> = vec![
+            (
+                "one",
+                Box::new(|exp: &Expression| {
+                    check_infix_expression(
+                        &exp,
+                        Literal::Int(0),
+                        InfixOperator::Plus,
+                        Literal::Int(1),
+                    )
+                }),
+            ),
+            (
+                "two",
+                Box::new(|exp: &Expression| {
+                    check_infix_expression(
+                        &exp,
+                        Literal::Int(10),
+                        InfixOperator::Minus,
+                        Literal::Int(8),
+                    )
+                }),
+            ),
+            (
+                "three",
+                Box::new(|exp: &Expression| {
+                    check_infix_expression(
+                        &exp,
+                        Literal::Int(15),
+                        InfixOperator::Divide,
+                        Literal::Int(5),
+                    )
+                }),
+            ),
+        ];
+
+        for (i, (key, value_checker)) in expected.into_iter().enumerate() {
+            let (exp_key, exp_value) = &hash_literal_expression.pairs[i];
+            check_string_literal(exp_key, key);
+            value_checker(exp_value);
+        }
     }
 
     enum Literal<'a> {

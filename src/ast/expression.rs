@@ -1,6 +1,5 @@
-use std::{fmt::Display, rc::Rc};
-
 use crate::token::Token;
+use std::{fmt::Display, rc::Rc};
 
 use super::{node::NodeTrait, statement::BlockStatement};
 
@@ -17,6 +16,7 @@ pub enum Expression {
     FunctionCall(FunctionCall),
     ArrayLiteral(ArrayLiteral),
     ArrayIndex(ArrayIndex),
+    HashLiteral(HashLiteral),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,6 +109,7 @@ impl Expression {
             Expression::FunctionCall(x) => x.token_literal(),
             Expression::ArrayLiteral(x) => x.token_literal(),
             Expression::ArrayIndex(x) => x.token_literal(),
+            Expression::HashLiteral(x) => x.token_literal(),
         }
     }
 
@@ -125,6 +126,7 @@ impl Expression {
             Expression::FunctionCall(_) => "Expression::FunctionCall",
             Expression::ArrayLiteral(_) => "Expression::ArrayLiteral",
             Expression::ArrayIndex(_) => "Expression::ArrayIndex",
+            Expression::HashLiteral(_) => "Expression::HashLiteral",
         }
     }
 }
@@ -146,6 +148,7 @@ impl Display for Expression {
                 Expression::FunctionCall(x) => x.to_string(),
                 Expression::ArrayLiteral(x) => x.to_string(),
                 Expression::ArrayIndex(x) => x.to_string(),
+                Expression::HashLiteral(x) => x.to_string(),
             }
         )
     }
@@ -379,5 +382,33 @@ impl NodeTrait for ArrayIndex {
 impl Display for ArrayIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}[{}])", self.left.to_string(), self.index.to_string())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HashLiteral {
+    pub token: Rc<Token>,
+    // note: apparently implementing this as a map is very hard. I'let this be a vec to flat during
+    // evaluation. Not very happy about it :(
+    pub pairs: Vec<(Expression, Expression)>,
+}
+
+impl NodeTrait for HashLiteral {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for HashLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{{}}}",
+            self.pairs
+                .iter()
+                .map(|(k, v)| format!("{}: {}", k.to_string(), v.to_string()))
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
     }
 }
