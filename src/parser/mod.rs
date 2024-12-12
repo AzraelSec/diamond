@@ -31,7 +31,7 @@ impl Precedence {
     fn for_token(token: &Token) -> Self {
         match token {
             Token::EQ | Token::NotEq => Self::EQUALS,
-            Token::LT | Token::GT => Self::LESSGREATER,
+            Token::LT | Token::GT | Token::LTET | Token::GTET => Self::LESSGREATER,
             Token::Plus | Token::Minus => Self::SUM,
             Token::Slash | Token::Asterisk => Self::PRODUCT,
             Token::Lparen => Self::CALL,
@@ -319,7 +319,9 @@ impl Parser {
             | Token::EQ
             | Token::NotEq
             | Token::LT
-            | Token::GT => self.parse_infix_modifier_expression(left),
+            | Token::LTET
+            | Token::GT
+            | Token::GTET => self.parse_infix_modifier_expression(left),
             Token::Lparen => self.parse_function_call(left),
             Token::Lbracket => self.parse_array_index(left),
             _ => None,
@@ -725,9 +727,21 @@ mod tests {
                 Literal::Int(5),
             ),
             (
+                "5 >= 5;",
+                Literal::Int(5),
+                InfixOperator::GreaterThanOrEqualTo,
+                Literal::Int(5),
+            ),
+            (
                 "5 < 5;",
                 Literal::Int(5),
                 InfixOperator::LessThan,
+                Literal::Int(5),
+            ),
+            (
+                "5 <= 5;",
+                Literal::Int(5),
+                InfixOperator::LessThanOrEqualTo,
                 Literal::Int(5),
             ),
             (
@@ -773,8 +787,9 @@ mod tests {
             let statement = match &program.statements[0] {
                 Statement::Expression(statement) => statement,
                 generic => panic!(
-                    "expected expression statement, found {}",
-                    generic.type_string()
+                    "expected expression statement, found {}: {}",
+                    generic.type_string(),
+                    generic.to_string()
                 ),
             };
 

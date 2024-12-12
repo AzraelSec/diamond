@@ -140,7 +140,9 @@ fn eval_infix_expression(expression: InfixExpression, env: &MutEnvironmentRef) -
         InfixOperator::Multiply => eval_multiply_infix_expression(left, right),
         InfixOperator::Divide => eval_divide_infix_expression(left, right),
         InfixOperator::LessThan => eval_lt_infix_expression(left, right),
+        InfixOperator::LessThanOrEqualTo => eval_ltet_infix_expression(left, right),
         InfixOperator::GreaterThan => eval_gt_infix_expression(left, right),
+        InfixOperator::GreaterThanOrEqualTo => eval_gtet_infix_expression(left, right),
         InfixOperator::Equal => eval_equal_infix_expression(left, right),
         InfixOperator::NotEqual => eval_not_equal_infix_expression(left, right),
     }
@@ -210,12 +212,34 @@ fn eval_lt_infix_expression(left: Object, right: Object) -> Object {
     }
 }
 
+fn eval_ltet_infix_expression(left: Object, right: Object) -> Object {
+    match (left, right) {
+        (Object::Integer(left), Object::Integer(right)) => Object::Boolean(left <= right),
+        (left, right) => Object::Error(ErrorObject::UnknownInfixOperator(
+            left.get_type(),
+            InfixOperator::LessThanOrEqualTo,
+            right.get_type(),
+        )),
+    }
+}
+
 fn eval_gt_infix_expression(left: Object, right: Object) -> Object {
     match (left, right) {
         (Object::Integer(left), Object::Integer(right)) => Object::Boolean(left > right),
         (left, right) => Object::Error(ErrorObject::UnknownInfixOperator(
             left.get_type(),
             InfixOperator::GreaterThan,
+            right.get_type(),
+        )),
+    }
+}
+
+fn eval_gtet_infix_expression(left: Object, right: Object) -> Object {
+    match (left, right) {
+        (Object::Integer(left), Object::Integer(right)) => Object::Boolean(left >= right),
+        (left, right) => Object::Error(ErrorObject::UnknownInfixOperator(
+            left.get_type(),
+            InfixOperator::GreaterThanOrEqualTo,
             right.get_type(),
         )),
     }
@@ -491,6 +515,8 @@ mod tests {
             ("(1 < 2) == false", false),
             ("(1 > 2) == true", false),
             ("(1 > 2) == false", true),
+            ("1 <= 2", true),
+            ("1 >= 2", false),
         ];
         for (input, expected) in tests {
             check_boolean_object(check_eval(input), expected);

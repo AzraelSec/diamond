@@ -195,6 +195,9 @@ mod tests {
         [1, 2];
 
         {"foo": "bar"}
+
+        1 <= 2;
+        2 >= 1;
         "#;
 
         let tests = vec![
@@ -296,6 +299,15 @@ mod tests {
             Token::Colon,
             Token::String("bar".to_string()),
             Token::Rbrace,
+            //
+            Token::Int("1".to_string()),
+            Token::LTET,
+            Token::Int("2".to_string()),
+            Token::Semicolon,
+            Token::Int("2".to_string()),
+            Token::GTET,
+            Token::Int("1".to_string()),
+            Token::Semicolon,
             Token::Eof,
         ];
 

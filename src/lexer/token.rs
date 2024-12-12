@@ -19,7 +19,9 @@ pub enum Token {
     EQ,
     NotEq,
     LT,
+    LTET,
     GT,
+    GTET,
 
     //
     Comma,
@@ -59,7 +61,9 @@ impl Display for Token {
             Token::EQ => write!(f, "=="),
             Token::NotEq => write!(f, "!="),
             Token::LT => write!(f, "<"),
+            Token::LTET => write!(f, "<="),
             Token::GT => write!(f, ">"),
+            Token::GTET => write!(f, ">="),
             Token::Comma => write!(f, ","),
             Token::Semicolon => write!(f, ";"),
             Token::Colon => write!(f, ":"),
@@ -97,8 +101,14 @@ impl Token {
             Some('*') => (Some(Token::Asterisk), false),
             Some('/') => (Some(Token::Slash), false),
             //
-            Some('<') => (Some(Token::LT), false),
-            Some('>') => (Some(Token::GT), false),
+            Some('<') => match peek {
+                Some('=') => (Some(Token::LTET), true),
+                _ => (Some(Token::LT), false),
+            },
+            Some('>') => match peek {
+                Some('=') => (Some(Token::GTET), true),
+                _ => (Some(Token::GT), false),
+            },
             //
             Some(',') => (Some(Token::Comma), false),
             Some(';') => (Some(Token::Semicolon), false),
@@ -139,7 +149,9 @@ impl Token {
                 | Token::EQ
                 | Token::NotEq
                 | Token::LT
+                | Token::LTET
                 | Token::GT
+                | Token::GTET
                 | Token::Lparen
                 | Token::Lbracket
         )
@@ -186,7 +198,9 @@ mod tests {
             (Some('!'), None, Some(Token::Bang), false),
             (Some('!'), Some('='), Some(Token::NotEq), true),
             (Some('<'), None, Some(Token::LT), false),
+            (Some('<'), Some('='), Some(Token::LTET), true),
             (Some('>'), None, Some(Token::GT), false),
+            (Some('>'), Some('='), Some(Token::GTET), true),
             (Some(','), None, Some(Token::Comma), false),
             (Some(';'), None, Some(Token::Semicolon), false),
             (Some('('), None, Some(Token::Lparen), false),

@@ -58,7 +58,9 @@ pub enum InfixOperator {
     Equal,
     NotEqual,
     LessThan,
+    LessThanOrEqualTo,
     GreaterThan,
+    GreaterThanOrEqualTo,
 }
 
 impl Display for InfixOperator {
@@ -74,7 +76,9 @@ impl Display for InfixOperator {
                 InfixOperator::Equal => "==",
                 InfixOperator::NotEqual => "!=",
                 InfixOperator::LessThan => "<",
+                InfixOperator::LessThanOrEqualTo => "<=",
                 InfixOperator::GreaterThan => ">",
+                InfixOperator::GreaterThanOrEqualTo => ">=",
             }
         )
     }
@@ -90,7 +94,9 @@ impl InfixOperator {
             "==" => Some(InfixOperator::Equal),
             "!=" => Some(InfixOperator::NotEqual),
             "<" => Some(InfixOperator::LessThan),
+            "<=" => Some(InfixOperator::LessThanOrEqualTo),
             ">" => Some(InfixOperator::GreaterThan),
+            ">=" => Some(InfixOperator::GreaterThanOrEqualTo),
             _ => None,
         }
     }
