@@ -1,9 +1,10 @@
 use std::hash::Hash;
 use std::{collections::HashMap, fmt::Display};
 
-use crate::evaluator::environment::Environment;
 use crate::parser::expression::{Identifier, InfixOperator, PrefixOperator};
 use crate::parser::statement::BlockStatement;
+
+use super::environment::MutEnvironmentRef;
 
 type BuiltInFun = fn(Vec<Object>) -> Object;
 
@@ -123,7 +124,7 @@ impl Display for ErrorObject {
 pub struct FunctionObject {
     pub params: Vec<Identifier>,
     pub body: BlockStatement,
-    pub env: Environment,
+    pub env: MutEnvironmentRef,
 }
 
 impl Display for FunctionObject {
