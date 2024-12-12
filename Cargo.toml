@@ -1,0 +1,14 @@
+[package]
+name = "diamond"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[lib]
+name = "diamond_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "diamond_repl"
+path = "src/main.rs"
