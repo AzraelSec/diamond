@@ -711,12 +711,27 @@ mod tests {
             ),
             ("len([1, 2, 3])", Object::Integer(3)),
             ("len([])", Object::Integer(0)),
+            ("first([1, 2, 3])", Object::Integer(1)),
+            ("first([])", Object::Null),
+            ("last([1, 2, 3])", Object::Integer(3)),
+            ("last([])", Object::Null),
+            (
+                "push([1, 2, 3], 4)",
+                Object::Array(vec![
+                    Object::Integer(1),
+                    Object::Integer(2),
+                    Object::Integer(3),
+                    Object::Integer(4),
+                ]),
+            ),
+            ("push([], 1)", Object::Array(vec![Object::Integer(1)])),
         ];
 
         for (input, result) in tests {
             let obj = check_eval(input);
             match result {
                 Object::Integer(result) => check_integer_object(obj, result),
+                Object::Array(array) => check_array_object(obj, array),
                 Object::Error(error) => {
                     let obj = match obj {
                         Object::Error(obj) => obj,
@@ -734,7 +749,8 @@ mod tests {
                         obj.to_string()
                     );
                 }
-                _ => unreachable!("not tested cases"),
+                Object::Null => assert!(matches!(obj, Object::Null)),
+                s => panic!("unexpected object {}", s),
             }
         }
     }
@@ -828,5 +844,14 @@ mod tests {
             _ => panic!("expected StringObject, got: {}", obj.get_type()),
         };
         assert_eq!(obj, expected, "expected={}, got={}", expected, obj);
+    }
+
+    fn check_array_object(obj: Object, expected: Vec<Object>) {
+        let obj = match obj {
+            Object::Array(obj) => obj,
+            Object::Error(error) => panic!("expected ArrayObject, got error: {}", error),
+            _ => panic!("expected ArrayObject, got: {}", obj.get_type()),
+        };
+        assert_eq!(obj, expected, "expected={:?}, got={:?}", expected, obj);
     }
 }
