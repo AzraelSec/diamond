@@ -1,18 +1,20 @@
-use std::rc::Rc;
+use std::{ops::Index, rc::Rc};
 
 use crate::{
     ast::{
         expression::{
-            Expression, FunctionCall, FunctionLiteral, Identifier, IfExpression, InfixExpression,
-            InfixOperator, PrefixExpression, PrefixOperator,
+            ArrayIndex, ArrayLiteral, Expression, FunctionCall, FunctionLiteral, Identifier,
+            IfExpression, InfixExpression, InfixOperator, PrefixExpression, PrefixOperator,
         },
         node::Node,
         program::Program,
         statement::{BlockStatement, LetStatement, ReturnStatement, Statement},
     },
     environment::Environment,
-    object::builtins::get_builtin,
-    object::object::{ErrorObject, FunctionObject, Object},
+    object::{
+        builtins::get_builtin,
+        object::{ErrorObject, FunctionObject, Object},
+    },
 };
 
 pub fn eval(node: Node, env: &mut Environment) -> Object {
@@ -56,6 +58,8 @@ fn eval_expression(expression: Expression, env: &mut Environment) -> Object {
         Expression::Identifier(identifier) => eval_identifier_expression(identifier, env),
         Expression::FunctionLiteral(function) => eval_function_literal(function, env),
         Expression::FunctionCall(function_call) => eval_function_call(function_call, env),
+        Expression::ArrayLiteral(array_literal) => eval_array_literal(array_literal, env),
+        Expression::ArrayIndex(array_index) => eval_array_index(array_index, env),
     }
 }
 
@@ -338,6 +342,47 @@ fn eval_return_statement(statement: ReturnStatement, env: &mut Environment) -> O
         val
     } else {
         Object::Return(Box::new(val))
+    }
+}
+
+fn eval_array_literal(array: ArrayLiteral, env: &mut Environment) -> Object {
+    let elements = eval_expressions(array.elements, env);
+    if elements.len() == 1 && matches!(elements[0], Object::Error(_)) {
+        return elements[0].clone();
+    };
+    Object::Array(elements)
+}
+
+fn eval_array_index(expression: ArrayIndex, env: &mut Environment) -> Object {
+    let left = eval(Node::Expression(*expression.left), env);
+    if matches!(left, Object::Error(_)) {
+        return left;
+    }
+
+    let index = eval(Node::Expression(*expression.index), env);
+    if matches!(index, Object::Error(_)) {
+        return index;
+    }
+
+    match (left, index) {
+        (Object::Array(left), Object::Integer(index)) => {
+            let max = if left.is_empty() {
+                -1
+            } else {
+                (left.len() - 1) as i64
+            };
+
+            if index < 0 || index > max {
+                Object::Null
+            } else {
+                left[index as usize].clone()
+            }
+        }
+        (left, index) => Object::Error(ErrorObject::Generic(format!(
+            "array index not supported for {}[{}]",
+            left.get_type(),
+            index.get_type()
+        ))),
     }
 }
 
@@ -664,6 +709,8 @@ mod tests {
                     "wrong number of params: expected=1, got=2".to_string(),
                 )),
             ),
+            ("len([1, 2, 3])", Object::Integer(3)),
+            ("len([])", Object::Integer(0)),
         ];
 
         for (input, result) in tests {
@@ -688,6 +735,63 @@ mod tests {
                     );
                 }
                 _ => unreachable!("not tested cases"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_array_literal() {
+        let input = "[1, 2 * 2, 3 + 3]";
+        let evaluated = check_eval(input);
+        let array = match evaluated {
+            Object::Array(array) => array,
+            obj => panic!(
+                "unexpected object type {}, want={}",
+                obj.get_type(),
+                ObjectType::Array
+            ),
+        };
+
+        assert_eq!(
+            array.len(),
+            3,
+            "wrong number of elements {}, want={}",
+            array.len(),
+            3
+        );
+
+        check_integer_object(array[0].clone(), 1);
+        check_integer_object(array[1].clone(), 4);
+        check_integer_object(array[2].clone(), 6);
+    }
+
+    #[test]
+    fn test_array_index() {
+        let tests = [
+            ("[1, 2, 3][0]", Literal::Int(1)),
+            ("[1, 2, 3][1]", Literal::Int(2)),
+            ("[1, 2, 3][2]", Literal::Int(3)),
+            ("let i = 0; [1][i];", Literal::Int(1)),
+            ("[1, 2, 3][1 + 1];", Literal::Int(3)),
+            ("let myArray = [1, 2, 3]; myArray[2];", Literal::Int(3)),
+            (
+                "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                Literal::Int(6),
+            ),
+            (
+                "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",
+                Literal::Int(2),
+            ),
+            ("[1, 2, 3][3]", Literal::Null),
+            ("[1, 2, 3][-1]", Literal::Null),
+        ];
+
+        for (input, expected) in tests {
+            let obj = check_eval(input);
+            match expected {
+                Literal::Int(expected) => check_integer_object(obj, expected),
+                Literal::Null => assert!(matches!(obj, Object::Null)),
+                _ => panic!("unexpected object {}", obj),
             }
         }
     }

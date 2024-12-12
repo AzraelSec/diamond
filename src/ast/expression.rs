@@ -15,6 +15,8 @@ pub enum Expression {
     If(IfExpression),
     FunctionLiteral(FunctionLiteral),
     FunctionCall(FunctionCall),
+    ArrayLiteral(ArrayLiteral),
+    ArrayIndex(ArrayIndex),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -105,6 +107,8 @@ impl Expression {
             Expression::If(x) => x.token_literal(),
             Expression::FunctionLiteral(x) => x.token_literal(),
             Expression::FunctionCall(x) => x.token_literal(),
+            Expression::ArrayLiteral(x) => x.token_literal(),
+            Expression::ArrayIndex(x) => x.token_literal(),
         }
     }
 
@@ -119,6 +123,8 @@ impl Expression {
             Expression::If(_) => "Expression::If",
             Expression::FunctionLiteral(_) => "Expression::FunctionLiteral",
             Expression::FunctionCall(_) => "Expression::FunctionCall",
+            Expression::ArrayLiteral(_) => "Expression::ArrayLiteral",
+            Expression::ArrayIndex(_) => "Expression::ArrayIndex",
         }
     }
 }
@@ -138,6 +144,8 @@ impl Display for Expression {
                 Expression::If(x) => x.to_string(),
                 Expression::FunctionLiteral(x) => x.to_string(),
                 Expression::FunctionCall(x) => x.to_string(),
+                Expression::ArrayLiteral(x) => x.to_string(),
+                Expression::ArrayIndex(x) => x.to_string(),
             }
         )
     }
@@ -326,5 +334,50 @@ impl Display for FunctionCall {
                 .collect::<Vec<String>>()
                 .join(", ")
         )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArrayLiteral {
+    pub token: Rc<Token>,
+    pub elements: Vec<Expression>,
+}
+
+impl NodeTrait for ArrayLiteral {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for ArrayLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{}]",
+            self.elements
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArrayIndex {
+    pub token: Rc<Token>,
+    pub left: Box<Expression>,
+    pub index: Box<Expression>,
+}
+
+impl NodeTrait for ArrayIndex {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for ArrayIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}[{}])", self.left.to_string(), self.index.to_string())
     }
 }

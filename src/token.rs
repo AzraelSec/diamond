@@ -29,6 +29,8 @@ pub enum Token {
     Rparen,
     Lbrace,
     Rbrace,
+    Lbracket,
+    Rbracket,
     //
     Function,
     Let,
@@ -63,6 +65,8 @@ impl Display for Token {
             Token::Rparen => write!(f, ")"),
             Token::Lbrace => write!(f, "{{"),
             Token::Rbrace => write!(f, "}}"),
+            Token::Lbracket => write!(f, "["),
+            Token::Rbracket => write!(f, "]"),
             Token::Function => write!(f, "fn"),
             Token::Let => write!(f, "let"),
             Token::True => write!(f, "true"),
@@ -101,6 +105,8 @@ impl Token {
             Some(')') => (Some(Token::Rparen), false),
             Some('{') => (Some(Token::Lbrace), false),
             Some('}') => (Some(Token::Rbrace), false),
+            Some('[') => (Some(Token::Lbracket), false),
+            Some(']') => (Some(Token::Rbracket), false),
             //
             None => (Some(Token::Eof), false),
             _ => (None, false),
@@ -132,6 +138,7 @@ impl Token {
                 | Token::LT
                 | Token::GT
                 | Token::Lparen
+                | Token::Lbracket
         )
     }
 }

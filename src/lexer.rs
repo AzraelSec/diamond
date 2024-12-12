@@ -50,7 +50,7 @@ impl Lexer {
                 tok
             }
             (None, _) => {
-                if let Some('"') = self.ch {
+                if Self::is_string_starter(self.ch) {
                     self.read_string()
                 } else if Self::is_letter(self.ch) {
                     return self.read_identifier();
@@ -108,6 +108,10 @@ impl Lexer {
         }
 
         Token::String(self.input[start_pos..self.position].to_string())
+    }
+
+    fn is_string_starter(ch: Option<char>) -> bool {
+        matches!(ch, Some('"'))
     }
 
     fn is_letter(ch: Option<char>) -> bool {
@@ -186,6 +190,8 @@ mod tests {
 
         "foobar";
         "foo bar";
+
+        [1, 2];
         "#;
 
         let tests = vec![
@@ -273,6 +279,13 @@ mod tests {
             Token::String("foobar".to_string()),
             Token::Semicolon,
             Token::String("foo bar".to_string()),
+            Token::Semicolon,
+            //
+            Token::Lbracket,
+            Token::Int("1".to_string()),
+            Token::Comma,
+            Token::Int("2".to_string()),
+            Token::Rbracket,
             Token::Semicolon,
             Token::Eof,
         ];

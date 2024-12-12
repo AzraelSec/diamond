@@ -10,6 +10,7 @@ pub fn get_builtin(ident: &str) -> Option<Object> {
 
             match &args[0] {
                 Object::String(val) => Object::Integer(val.len() as i64),
+                Object::Array(array) => Object::Integer(array.len() as i64),
                 generic => Object::Error(ErrorObject::Generic(format!(
                     "len builtin does not support type {}",
                     generic.get_type()

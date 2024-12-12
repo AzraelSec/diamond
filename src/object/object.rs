@@ -20,6 +20,7 @@ pub enum ObjectType {
     Error,
     Function,
     BuiltIn,
+    Array,
 }
 
 impl Display for ObjectType {
@@ -33,6 +34,7 @@ impl Display for ObjectType {
             ObjectType::Function => write!(f, "function"),
             ObjectType::BuiltIn => write!(f, "built-in"),
             ObjectType::Error => write!(f, "error"),
+            ObjectType::Array => write!(f, "array"),
         }
     }
 }
@@ -47,6 +49,7 @@ pub enum Object {
     Function(FunctionObject),
     BuiltIn(BuiltInFun),
     Error(ErrorObject),
+    Array(Vec<Object>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -128,6 +131,14 @@ impl Display for Object {
             Self::Function(obj) => write!(f, "{}", obj),
             Self::BuiltIn(_) => write!(f, "<runtime function>"),
             Self::Error(msg) => write!(f, "{}", msg),
+            Self::Array(objs) => write!(
+                f,
+                "[{}]",
+                objs.iter()
+                    .map(|o| o.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
         }
     }
 }
@@ -143,6 +154,7 @@ impl Object {
             Object::Function(_) => ObjectType::Function,
             Object::BuiltIn(_) => ObjectType::BuiltIn,
             Object::Error(_) => ObjectType::Error,
+            Object::Array(_) => ObjectType::Array,
         }
     }
 }
