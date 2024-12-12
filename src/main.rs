@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use diamond_core::lexer::Lexer;
+use diamond_core::{ast::node::Node, evaluator::eval, lexer::Lexer};
 
 fn main() {
     println!("Welcome to the Diamond REPL");
@@ -22,13 +22,18 @@ fn main() {
         let mut parser = diamond_core::parser::Parser::new(lexer);
         let program = parser.parse_program();
 
-        if parser.errors().is_empty() {
-            println!("{}", program.to_string());
-        } else {
+        if !parser.errors().is_empty() {
             println!("parser has {} errors:", parser.errors().len());
             for msg in parser.errors().into_iter() {
                 println!("\tparser error: {}", msg);
             }
+            continue;
+        }
+
+        let evaluated = eval(Node::Program(program));
+        match evaluated {
+            Some(obj) => println!("{}", obj),
+            None => println!("impossible to evaluate your input"),
         }
     }
 }

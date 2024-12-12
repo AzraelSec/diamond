@@ -84,7 +84,7 @@ impl Display for Identifier {
 #[derive(Debug, Clone)]
 pub struct IntegerLiteral {
     pub token: Rc<Token>,
-    pub value: u64,
+    pub value: i64,
 }
 
 impl NodeTrait for IntegerLiteral {

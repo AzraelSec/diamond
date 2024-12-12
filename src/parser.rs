@@ -232,7 +232,7 @@ impl Parser {
 
     fn parse_integer_literal_expression(&mut self) -> Option<Expression> {
         if let Token::Int(integer_literal) = self.curr_token.as_ref() {
-            match integer_literal.parse::<u64>() {
+            match integer_literal.parse::<i64>() {
                 Ok(integer) => Some(Expression::IntegerLiteral(IntegerLiteral {
                     token: self.curr_token.clone(),
                     value: integer,
@@ -1052,7 +1052,7 @@ mod tests {
 
     enum Literal<'a> {
         Ident(&'a str),
-        Int(u64),
+        Int(i64),
         Bool(bool),
     }
 
@@ -1102,7 +1102,7 @@ mod tests {
         assert_eq!(boolean_expression.token_literal(), expected.to_string());
     }
 
-    fn check_integer_literal(exp: &Expression, expected: u64) {
+    fn check_integer_literal(exp: &Expression, expected: i64) {
         let integer_literal = match exp {
             Expression::IntegerLiteral(integer_literal) => integer_literal,
             generic => panic!("expected integer literal, found: {}", generic.type_string()),
