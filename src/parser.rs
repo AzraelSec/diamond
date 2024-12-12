@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::{
     ast::{
         expression::{
-            BooleanExpression, Expression, FunctionLiteral, Identifier, IfExpression,
+            BooleanExpression, Expression, FunctionCall, FunctionLiteral, Identifier, IfExpression,
             InfixExpression, IntegerLiteral, PrefixExpression,
         },
         program::Program,
@@ -33,6 +33,7 @@ impl Precedence {
             Token::LT | Token::GT => Self::LESSGREATER,
             Token::Plus | Token::Minus => Self::SUM,
             Token::Slash | Token::Asterisk => Self::PRODUCT,
+            Token::Lparen => Self::CALL,
             _ => Self::LOWEST,
         }
     }
@@ -297,9 +298,18 @@ impl Parser {
     }
 
     fn parse_infix_expression(&mut self, left: Expression) -> Option<Expression> {
-        self.curr_token
-            .supports_infix()
-            .then(|| self.parse_infix_modifier_expression(left))?
+        match self.curr_token.as_ref() {
+            Token::Plus
+            | Token::Minus
+            | Token::Slash
+            | Token::Asterisk
+            | Token::EQ
+            | Token::NotEq
+            | Token::LT
+            | Token::GT => self.parse_infix_modifier_expression(left),
+            Token::Lparen => self.parse_function_call(left),
+            _ => None,
+        }
     }
 
     fn parse_infix_modifier_expression(&mut self, left: Expression) -> Option<Expression> {
@@ -315,6 +325,39 @@ impl Parser {
             left: Box::new(left),
             right: Box::new(self.parse_expression(precedence)?),
         }))
+    }
+
+    fn parse_function_call(&mut self, left: Expression) -> Option<Expression> {
+        let curr_token = self.curr_token.clone();
+        Some(Expression::FunctionCall(FunctionCall {
+            token: curr_token,
+            function: Box::new(left),
+            args: self.parse_function_call_args()?,
+        }))
+    }
+
+    fn parse_function_call_args(&mut self) -> Option<Vec<Expression>> {
+        let mut args: Vec<Expression> = Vec::new();
+
+        if self.peek_token_is(Token::Rparen) {
+            self.next_token();
+            return Some(args);
+        }
+
+        self.next_token();
+        args.push(self.parse_expression(Precedence::LOWEST)?);
+
+        while self.peek_token_is(Token::Comma) {
+            self.next_token();
+            self.next_token();
+            args.push(self.parse_expression(Precedence::LOWEST)?);
+        }
+
+        if !self.expect_peek(Token::Rparen) {
+            return None;
+        }
+
+        Some(args)
     }
 
     fn parse_function_literal(&mut self) -> Option<Expression> {
@@ -654,6 +697,15 @@ mod tests {
             ("2 / (5 + 5)", "(2 / (5 + 5))"),
             ("-(5 + 5)", "(-(5 + 5))"),
             ("!(true == true)", "(!(true == true))"),
+            ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+            (
+                "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            ),
+            (
+                "add(a + b + c * d / f + g)",
+                "add((((a + b) + ((c * d) / f)) + g))",
+            ),
         ];
 
         for (index, (input, expected)) in tests.into_iter().enumerate() {
@@ -933,6 +985,56 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_function_call() {
+        let input = "add(1, 2 * 3, 4 + 5);";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+        check_statements_len(&program, 1);
+
+        let statement = match &program.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
+
+        let function_call_expression = match &statement.expression {
+            Expression::FunctionCall(expression) => expression,
+            generic => panic!(
+                "expected function call expression, found {}",
+                generic.type_string()
+            ),
+        };
+
+        check_ident_literal(&function_call_expression.function, "add");
+        assert_eq!(
+            function_call_expression.args.len(),
+            3,
+            "wrong number of args {}, want={}",
+            function_call_expression.args.len(),
+            3
+        );
+        check_literal_expression(&function_call_expression.args[0], Literal::Int(1));
+        check_infix_expression(
+            &function_call_expression.args[1],
+            Literal::Int(2),
+            "*",
+            Literal::Int(3),
+        );
+        check_infix_expression(
+            &function_call_expression.args[2],
+            Literal::Int(4),
+            "+",
+            Literal::Int(5),
+        );
     }
 
     enum Literal<'a> {

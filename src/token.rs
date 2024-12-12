@@ -128,7 +128,8 @@ impl Token {
                 | Token::EQ
                 | Token::NotEq
                 | Token::LT
-                | Token::GT,
+                | Token::GT
+                | Token::Lparen
         )
     }
 }

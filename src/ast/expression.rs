@@ -13,6 +13,7 @@ pub enum Expression {
     Boolean(BooleanExpression),
     If(IfExpression),
     FunctionLiteral(FunctionLiteral),
+    FunctionCall(FunctionCall),
 }
 
 impl Expression {
@@ -25,6 +26,7 @@ impl Expression {
             Expression::Boolean(x) => x.token_literal(),
             Expression::If(x) => x.token_literal(),
             Expression::FunctionLiteral(x) => x.token_literal(),
+            Expression::FunctionCall(x) => x.token_literal(),
         }
     }
 
@@ -37,6 +39,7 @@ impl Expression {
             Expression::Boolean(_) => "Expression::Boolean",
             Expression::If(_) => "Expression::If",
             Expression::FunctionLiteral(_) => "Expression::FunctionLiteral",
+            Expression::FunctionCall(_) => "Expression::FunctionCall",
         }
     }
 }
@@ -54,6 +57,7 @@ impl Display for Expression {
                 Expression::Boolean(x) => x.to_string(),
                 Expression::If(x) => x.to_string(),
                 Expression::FunctionLiteral(x) => x.to_string(),
+                Expression::FunctionCall(x) => x.to_string(),
             }
         )
     }
@@ -212,6 +216,34 @@ impl Display for FunctionLiteral {
                 .collect::<Vec<String>>()
                 .join(","),
             self.body.to_string()
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FunctionCall {
+    pub token: Rc<Token>,
+    pub function: Box<Expression>,
+    pub args: Vec<Expression>,
+}
+
+impl NodeTrait for FunctionCall {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for FunctionCall {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({})",
+            self.function.to_string(),
+            self.args
+                .iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
         )
     }
 }
