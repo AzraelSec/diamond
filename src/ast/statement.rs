@@ -7,7 +7,7 @@ use super::{
     node::NodeTrait,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
@@ -50,7 +50,7 @@ impl Display for Statement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LetStatement {
     pub token: Rc<Token>,
     pub name: Identifier,
@@ -75,7 +75,7 @@ impl Display for LetStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReturnStatement {
     pub token: Rc<Token>,
     pub value: Expression,
@@ -93,7 +93,7 @@ impl Display for ReturnStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExpressionStatement {
     pub token: Rc<Token>,
     pub expression: Expression,
@@ -111,7 +111,7 @@ impl Display for ExpressionStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockStatement {
     pub token: Rc<Token>,
     pub statements: Vec<Statement>,

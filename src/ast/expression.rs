@@ -4,7 +4,7 @@ use crate::token::Token;
 
 use super::{node::NodeTrait, statement::BlockStatement};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -139,7 +139,7 @@ impl Display for Expression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Identifier {
     pub token: Rc<Token>,
     pub value: String,
@@ -157,7 +157,7 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IntegerLiteral {
     pub token: Rc<Token>,
     pub value: i64,
@@ -175,7 +175,7 @@ impl Display for IntegerLiteral {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PrefixExpression {
     pub token: Rc<Token>,
     pub operator: PrefixOperator,
@@ -196,7 +196,7 @@ impl Display for PrefixExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct InfixExpression {
     pub token: Rc<Token>,
     pub operator: InfixOperator,
@@ -222,7 +222,7 @@ impl Display for InfixExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BooleanExpression {
     pub token: Rc<Token>,
     pub value: bool,
@@ -240,7 +240,7 @@ impl Display for BooleanExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IfExpression {
     pub token: Rc<Token>,
     pub condition: Box<Expression>,
@@ -268,7 +268,7 @@ impl Display for IfExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FunctionLiteral {
     pub token: Rc<Token>,
     pub params: Vec<Identifier>,
@@ -297,7 +297,7 @@ impl Display for FunctionLiteral {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FunctionCall {
     pub token: Rc<Token>,
     pub function: Box<Expression>,

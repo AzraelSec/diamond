@@ -1,8 +1,9 @@
 use std::io::{self, Write};
 
-use diamond_core::{ast::node::Node, evaluator::eval, lexer::Lexer};
+use diamond_core::{ast::node::Node, environment::Environment, evaluator::eval, lexer::Lexer};
 
 fn main() {
+    let mut env = Environment::new();
     println!("Welcome to the Diamond REPL");
 
     loop {
@@ -30,7 +31,7 @@ fn main() {
             continue;
         }
 
-        let evaluated = eval(Node::Program(program));
+        let evaluated = eval(Node::Program(program), &mut env);
         println!("{}", evaluated)
     }
 }
