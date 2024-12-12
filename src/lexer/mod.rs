@@ -1,4 +1,6 @@
-use crate::token::Token;
+use token::Token;
+
+pub mod token;
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -145,7 +147,6 @@ impl<'a> Iterator for LexerIterator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::token::Token;
     use super::*;
 
     #[test]

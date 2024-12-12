@@ -1,6 +1,6 @@
 use std::{fmt::Display, rc::Rc};
 
-use crate::token::Token;
+use crate::lexer::token::Token;
 
 use super::{
     expression::{Expression, Identifier},
@@ -138,7 +138,7 @@ impl Display for BlockStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::program::Program;
+    use crate::parser::program::Program;
 
     use super::*;
 

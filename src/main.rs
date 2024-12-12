@@ -1,6 +1,10 @@
 use std::io::{self, Write};
 
-use diamond_core::{ast::node::Node, environment::Environment, evaluator::eval, lexer::Lexer};
+use diamond_core::{
+    evaluator::{environment::Environment, eval},
+    lexer::Lexer,
+    parser::node::Node,
+};
 
 fn main() {
     let mut env = Environment::new();

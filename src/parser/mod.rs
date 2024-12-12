@@ -1,20 +1,19 @@
+pub mod expression;
+pub mod node;
+pub mod program;
+pub mod statement;
+
 use std::rc::Rc;
 
-use crate::{
-    ast::{
-        expression::{
-            ArrayIndex, ArrayLiteral, BooleanExpression, Expression, FunctionCall, FunctionLiteral,
-            HashLiteral, Identifier, IfExpression, InfixExpression, InfixOperator, IntegerLiteral,
-            PrefixExpression, PrefixOperator,
-        },
-        program::Program,
-        statement::{
-            BlockStatement, ExpressionStatement, LetStatement, ReturnStatement, Statement,
-        },
-    },
-    lexer::Lexer,
-    token::Token,
+use expression::{
+    ArrayIndex, ArrayLiteral, BooleanExpression, Expression, FunctionCall, FunctionLiteral,
+    HashLiteral, Identifier, IfExpression, InfixExpression, InfixOperator, IntegerLiteral,
+    PrefixExpression, PrefixOperator,
 };
+use program::Program;
+use statement::{BlockStatement, ExpressionStatement, LetStatement, ReturnStatement, Statement};
+
+use crate::lexer::{token::Token, Lexer};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
@@ -532,9 +531,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use super::node::NodeTrait;
     use core::panic;
-
-    use crate::ast::node::NodeTrait;
 
     use super::*;
 

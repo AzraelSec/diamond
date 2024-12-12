@@ -1,21 +1,21 @@
+pub mod builtins;
+pub mod environment;
+pub mod object;
+
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{
-    ast::{
-        expression::{
-            ArrayIndex, ArrayLiteral, Expression, FunctionCall, FunctionLiteral, HashLiteral,
-            Identifier, IfExpression, InfixExpression, InfixOperator, PrefixExpression,
-            PrefixOperator,
-        },
-        node::Node,
-        program::Program,
-        statement::{BlockStatement, LetStatement, ReturnStatement, Statement},
+use builtins::get_builtin;
+use environment::Environment;
+use object::{ErrorObject, FunctionObject, Object};
+
+use crate::parser::{
+    expression::{
+        ArrayIndex, ArrayLiteral, Expression, FunctionCall, FunctionLiteral, HashLiteral,
+        Identifier, IfExpression, InfixExpression, InfixOperator, PrefixExpression, PrefixOperator,
     },
-    environment::Environment,
-    object::{
-        builtins::get_builtin,
-        object::{ErrorObject, FunctionObject, Object},
-    },
+    node::Node,
+    program::Program,
+    statement::{BlockStatement, LetStatement, ReturnStatement, Statement},
 };
 
 pub fn eval(node: Node, env: &mut Environment) -> Object {
@@ -421,11 +421,9 @@ fn eval_hash_literal(hash: HashLiteral, env: &mut Environment) -> Object {
 mod tests {
     use core::panic;
 
-    use crate::{
-        lexer::Lexer,
-        object::object::{ErrorObject, Object, ObjectType},
-        parser::Parser,
-    };
+    use object::ObjectType;
+
+    use crate::{lexer::Lexer, parser::Parser};
 
     use super::*;
 

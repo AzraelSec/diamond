@@ -1,5 +1,6 @@
-use crate::token::Token;
 use std::{fmt::Display, rc::Rc};
+
+use crate::lexer::token::Token;
 
 use super::{node::NodeTrait, statement::BlockStatement};
 

@@ -1,13 +1,9 @@
 use std::hash::Hash;
 use std::{collections::HashMap, fmt::Display};
 
-use crate::{
-    ast::{
-        expression::{Identifier, InfixOperator, PrefixOperator},
-        statement::BlockStatement,
-    },
-    environment::Environment,
-};
+use crate::evaluator::environment::Environment;
+use crate::parser::expression::{Identifier, InfixOperator, PrefixOperator};
+use crate::parser::statement::BlockStatement;
 
 type BuiltInFun = fn(Vec<Object>) -> Object;
 
