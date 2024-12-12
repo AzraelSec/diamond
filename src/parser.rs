@@ -3,8 +3,8 @@ use std::rc::Rc;
 use crate::{
     ast::{
         expression::{
-            BooleanExpression, Expression, Identifier, IfExpression, InfixExpression,
-            IntegerLiteral, PrefixExpression,
+            BooleanExpression, Expression, FunctionLiteral, Identifier, IfExpression,
+            InfixExpression, IntegerLiteral, PrefixExpression,
         },
         program::Program,
         statement::{
@@ -198,6 +198,7 @@ impl Parser {
             Token::True | Token::False => self.parse_boolean_expression(),
             Token::Lparen => self.parse_grouped_expression(),
             Token::If => self.parse_if_expression(),
+            Token::Function => self.parse_function_literal(),
             _ => None,
         }
     }
@@ -316,6 +317,57 @@ impl Parser {
         }))
     }
 
+    fn parse_function_literal(&mut self) -> Option<Expression> {
+        let curr_token = self.curr_token.clone();
+        if !self.expect_peek(Token::Lparen) {
+            return None;
+        }
+
+        let params = self.parse_function_params()?;
+
+        if !self.expect_peek(Token::Lbrace) {
+            return None;
+        }
+
+        let body = self.parse_block_statement();
+
+        return Some(Expression::FunctionLiteral(FunctionLiteral {
+            token: curr_token,
+            body,
+            params,
+        }));
+    }
+
+    fn parse_function_params(&mut self) -> Option<Vec<Identifier>> {
+        let mut params: Vec<Identifier> = Vec::new();
+        if self.peek_token_is(Token::Rparen) {
+            self.next_token();
+            return Some(params);
+        }
+
+        self.next_token();
+        params.push(Identifier {
+            token: self.curr_token.clone(),
+            value: self.curr_token.to_string(),
+        });
+
+        while self.peek_token_is(Token::Comma) {
+            self.next_token();
+            self.next_token();
+
+            params.push(Identifier {
+                token: self.curr_token.clone(),
+                value: self.curr_token.to_string(),
+            });
+        }
+
+        if !self.expect_peek(Token::Rparen) {
+            return None;
+        }
+
+        Some(params)
+    }
+
     fn curr_token_is(&self, t: Token) -> bool {
         *self.curr_token == t
     }
@@ -369,6 +421,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use core::panic;
+
     use crate::ast::node::NodeTrait;
 
     use super::*;
@@ -761,6 +815,124 @@ mod tests {
             ),
         };
         check_ident_literal(&alternative_expression.expression, "y");
+    }
+
+    #[test]
+    fn test_function_literal() {
+        let input = "fn(x, y) { x + y; }";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+        check_statements_len(&program, 1);
+
+        let expression_statement = match &program.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement, found {}",
+                generic.type_string()
+            ),
+        };
+
+        let function_literal_expression = match &expression_statement.expression {
+            Expression::FunctionLiteral(expression) => expression,
+            generic => panic!(
+                "expected function literal expression, found {}",
+                generic.type_string()
+            ),
+        };
+
+        assert_eq!(
+            function_literal_expression.params.len(),
+            2,
+            "wrong number of parameters {}, want={}",
+            function_literal_expression.params.len(),
+            2
+        );
+
+        assert_eq!(&function_literal_expression.params[0].value, "x");
+        assert_eq!(&function_literal_expression.params[1].value, "y");
+
+        assert_eq!(
+            function_literal_expression.body.statements.len(),
+            1,
+            "wrong number of body statements {}, want={}",
+            function_literal_expression.body.statements.len(),
+            1
+        );
+
+        let body_expression_statement = match &function_literal_expression.body.statements[0] {
+            Statement::Expression(statement) => statement,
+            generic => panic!(
+                "expected expression statement in body, found {}",
+                generic.type_string()
+            ),
+        };
+
+        check_infix_expression(
+            &body_expression_statement.expression,
+            Literal::Ident("x"),
+            "+",
+            Literal::Ident("y"),
+        );
+    }
+
+    #[test]
+    fn test_function_params() {
+        let tests = [
+            ("fn () {};", Vec::new()),
+            ("fn (x) {};", vec!["x".to_string()]),
+            (
+                "fn (x, y, z) {};",
+                vec!["x".to_string(), "y".to_string(), "z".to_string()],
+            ),
+        ];
+
+        for (input, expected) in tests {
+            let lexer = Lexer::new(input.to_string());
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+            check_statements_len(&program, 1);
+
+            let statement = match &program.statements[0] {
+                Statement::Expression(statement) => statement,
+                generic => panic!(
+                    "expected expression statement, found {}",
+                    generic.type_string()
+                ),
+            };
+
+            let function_literal_expression = match &statement.expression {
+                Expression::FunctionLiteral(expression) => expression,
+                generic => panic!(
+                    "expected function literal expression, found {}",
+                    generic.type_string()
+                ),
+            };
+
+            assert_eq!(
+                function_literal_expression.params.len(),
+                expected.len(),
+                "length params wrong. want={}, got={}",
+                expected.len(),
+                function_literal_expression.params.len()
+            );
+
+            for (i, expected_identifier) in expected.iter().enumerate() {
+                assert_eq!(
+                    function_literal_expression.params[i].value,
+                    expected_identifier.to_string(),
+                    "wrong param value at index {}, want={}, got={}",
+                    i,
+                    expected_identifier,
+                    function_literal_expression.params[i].value
+                );
+            }
+        }
     }
 
     enum Literal<'a> {

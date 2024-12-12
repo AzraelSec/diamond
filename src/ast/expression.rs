@@ -12,6 +12,7 @@ pub enum Expression {
     Infix(InfixExpression),
     Boolean(BooleanExpression),
     If(IfExpression),
+    FunctionLiteral(FunctionLiteral),
 }
 
 impl Expression {
@@ -23,6 +24,7 @@ impl Expression {
             Expression::Infix(x) => x.token_literal(),
             Expression::Boolean(x) => x.token_literal(),
             Expression::If(x) => x.token_literal(),
+            Expression::FunctionLiteral(x) => x.token_literal(),
         }
     }
 
@@ -34,6 +36,7 @@ impl Expression {
             Expression::Infix(_) => "Expression::Infix",
             Expression::Boolean(_) => "Expression::Boolean",
             Expression::If(_) => "Expression::If",
+            Expression::FunctionLiteral(_) => "Expression::FunctionLiteral",
         }
     }
 }
@@ -50,6 +53,7 @@ impl Display for Expression {
                 Expression::Infix(x) => x.to_string(),
                 Expression::Boolean(x) => x.to_string(),
                 Expression::If(x) => x.to_string(),
+                Expression::FunctionLiteral(x) => x.to_string(),
             }
         )
     }
@@ -179,6 +183,35 @@ impl Display for IfExpression {
             self.alternative
                 .as_ref()
                 .map_or_else(|| "".to_string(), |e| format!("else {}", e.to_string()))
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FunctionLiteral {
+    pub token: Rc<Token>,
+    pub params: Vec<Identifier>,
+    pub body: BlockStatement,
+}
+
+impl NodeTrait for FunctionLiteral {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for FunctionLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({}) {}",
+            self.token_literal(),
+            self.params
+                .iter()
+                .map(|p| p.to_string())
+                .collect::<Vec<String>>()
+                .join(","),
+            self.body.to_string()
         )
     }
 }
